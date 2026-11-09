@@ -2088,7 +2088,7 @@ const CFG = {
   hfHost: null,         // null = huggingface.co
   wasmPaths: null,      // null = jsdelivr
   clipModel: 'Xenova/clip-vit-base-patch32',
-  promptVer: 'p1',
+  promptVer: 'p2',
   fallbackSec: 20,      // 방향센서 없을 때 스캔 시간
   maxKeyframes: 40,
   detIntervalMs: 120,
@@ -2142,7 +2142,9 @@ const OBJECTS = [
   {k:'fire', label:'가스용기/용접', maps:['risk_fire'], p:['a photo of a gas cylinder','a photo of welding with sparks']},
   {k:'cones', label:'컬러콘(안전시설) 확인', maps:[], info:true, p:['a photo of orange traffic cones on the road']}
 ];
-const BG = ['a photo of the sky','a photo of trees','a photo of a building wall','a photo of a person','a photo of a car',
+const BG = ['a photo of an office with desks and computers','a photo of a computer monitor screen','a photo of a picture displayed on a screen',
+  'a photo of a ceiling with lights','a photo of office chairs and partitions','a photo of cables under a desk','a photo of a hallway','a photo of a window',
+  'a photo of a shelf with boxes','a photo of a parked car','a photo of the sky','a photo of trees','a photo of a building wall','a photo of a person','a photo of a car',
   'a photo of an empty asphalt road','a photo of a sidewalk','a photo of the ground','a blurry photo','a photo of a room','a photo of a street'];
 
 // 프롬프트 평탄화
@@ -2153,7 +2155,9 @@ BG.forEach(t => IDX.bg.push(TEXTS.push(t) - 1));
 const EMB_KEY = 'ai_textemb_' + CFG.clipModel + '_' + CFG.promptVer + '_' + TEXTS.length;
 
 const VEH = {car:{w:1.8,l:4.5}, truck:{w:2.5,l:8}, bus:{w:2.5,l:11}, motorcycle:{w:0.8,l:2.0}, bicycle:{w:0.6,l:1.8}};
-const SENS = {low:{thr:0.75,scene:0.45}, mid:{thr:0.62,scene:0.35}, high:{thr:0.5,scene:0.28}};
+const SENS = {low:{thr:0.8,scene:0.45}, mid:{thr:0.7,scene:0.35}, high:{thr:0.55,scene:0.28}};
+// 실내에서는 나오기 어려운 항목 (실내 장면이 우세하면 '확인필요'로 낮춤)
+const OUTDOOR = new Set(['manhole','power','excavator','crane','dump','bucket','roller','loader','pump','trench','wet','ice','cones']);
 
 /* ---------- 유틸 ---------- */
 function loadScript(src){
@@ -2401,10 +2405,10 @@ function onSims(id, view, sims){
     }
     const bgMax = mx(IDX.bg);
     OBJECTS.forEach(o => {
-      const p = sig(100 * (mx(IDX.obj[o.k]) - bgMax));
+      const p = sig(100 * (mx(IDX.obj[o.k]) - bgMax) - 1.5);
       const st = S.ob[o.k];
       if (p > st.maxP){ st.maxP = p; st.best = id; }
-      if (p >= sens.thr) st.hits++;
+      if (p >= sens.thr){ st.hitIds = st.hitIds || new Set(); st.hitIds.add(id); st.hits = st.hitIds.size; }
     });
   }
   if (running) renderChips(); else renderWait();
@@ -2541,14 +2545,17 @@ function buildFindings(live){
     out.push({key:'s_' + s.k, label:s.label, conf, level, thumb:kfThumb(st.best), maps:s.maps, why:'장면 ' + st.n + '/' + nF + '프레임'});
   });
   const has = {};
+  const indoor = S.sc.indoor.n / nF >= 0.5;
   OBJECTS.forEach(o => {
     const st = S.ob[o.k];
-    let level = null;
-    if (st.hits >= 2 || st.maxP >= 0.9) level = 'high'; else if (st.hits === 1) level = 'low';
+    let level = null, why = '감지 ' + st.hits + '장면';
+    const need = Math.max(2, Math.ceil(nF * 0.08));
+    if (st.hits >= need) level = 'high'; else if (st.hits >= 1) level = 'low';
     if (!level) return;
+    if (level === 'high' && indoor && OUTDOOR.has(o.k) && !(st.hits >= 3 && st.maxP >= 0.93)){ level = 'low'; why += ' · 실내 장면이라 확인필요'; }
     if (level === 'high') has[o.k] = true;
     out.push({key:'o_' + o.k, label:o.label, conf:st.maxP, level, thumb:kfThumb(st.best), maps:o.maps, danger:o.danger, todo:o.todo,
-      info:!!o.info, why:'감지 ' + st.hits + '회'});
+      info:!!o.info, why});
   });
   // 차량(실시간 감지)
   const tf = trafficSummary();
