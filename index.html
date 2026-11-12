@@ -2067,6 +2067,53 @@ self.onmessage = ev => {
 };
 
 </script>
+<script type="text/js-worker" id="aiDetWorkerSrc">
+// 장비·차량·사람 탐지 워커 (YOLOE 오픈어휘 탐지 모델, ONNX, 폰 내부 실행)
+let ort = null, sess = null, inName = 'images', N = 16, SZ = 480;
+
+async function init(m){
+  ort = await import(m.ortUrl);
+  ort.env.wasm.wasmPaths = m.wasmPaths;
+  ort.env.wasm.numThreads = 1;
+  N = m.nClasses; SZ = m.size;
+  sess = await ort.InferenceSession.create(m.modelUrl, { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+  inName = sess.inputNames[0];
+  // 워밍업
+  await sess.run({ [inName]: new ort.Tensor('float32', new Float32Array(3 * SZ * SZ), [1, 3, SZ, SZ]) });
+  postMessage({ type: 'ready' });
+}
+
+function iou(a, b){
+  const x1 = Math.max(a.x, b.x), y1 = Math.max(a.y, b.y), x2 = Math.min(a.x + a.w, b.x + b.w), y2 = Math.min(a.y + a.h, b.y + b.h);
+  const i = Math.max(0, x2 - x1) * Math.max(0, y2 - y1); return i / (a.w * a.h + b.w * b.h - i + 1e-6);
+}
+
+async function detect(m){
+  const px = new Uint8ClampedArray(m.buf), A = SZ * SZ, f = new Float32Array(3 * A);
+  for (let i = 0; i < A; i++){ f[i] = px[i * 4] / 255; f[A + i] = px[i * 4 + 1] / 255; f[2 * A + i] = px[i * 4 + 2] / 255; }
+  const out = await sess.run({ [inName]: new ort.Tensor('float32', f, [1, 3, SZ, SZ]) });
+  const o = out[sess.outputNames[0]], d = o.data, P = o.dims[2];   // [1, 4+N(+32), P]
+  const cand = [];
+  for (let i = 0; i < P; i++){
+    let bc = 0, bs = 0;
+    for (let c = 0; c < N; c++){ const s = d[(4 + c) * P + i]; if (s > bs){ bs = s; bc = c; } }
+    if (bs < m.minScore) continue;
+    const cx = d[i], cy = d[P + i], w = d[2 * P + i], h = d[3 * P + i];
+    cand.push({ c: bc, s: bs, x: cx - w / 2, y: cy - h / 2, w, h });
+  }
+  cand.sort((a, b) => b.s - a.s);
+  const keep = [];
+  for (const b of cand){ if (keep.length >= 40) break; if (!keep.some(k => k.c === b.c && iou(k, b) > 0.5)) keep.push(b); }
+  postMessage({ type: 'det', id: m.id, boxes: keep });
+}
+
+self.onmessage = ev => {
+  const m = ev.data;
+  if (m.type === 'init') init(m).catch(e => postMessage({ type: 'error', message: String((e && e.message) || e) }));
+  else if (m.type === 'frame') detect(m).catch(e => postMessage({ type: 'det', id: m.id, boxes: [], error: String(e) }));
+};
+
+</script>
 <script>
 /* ===== AI 현장 스캔 (온디바이스 · 서버 전송 없음) =====
  * - 실시간 객체감지: TensorFlow.js COCO-SSD (차량/사람 박스 + 속도 추정)
@@ -2081,6 +2128,10 @@ const DEMO = Q.has('aidemo');
 const $ = id => document.getElementById(id);
 
 const CFG = {
+  ort: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.wasm.min.mjs',
+  ortWasm: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/',
+  equipModel: 'equip.onnx',   // index.html과 같은 폴더 (탐지 모델)
+  eqSize: 480, eqIntervalMs: 220, eqMinScore: 0.25,
   tfjs: 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js',
   coco: 'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js',
   transformers: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5/dist/transformers.min.js',
@@ -2165,6 +2216,22 @@ const EMB_KEY = 'ai_textemb_' + CFG.clipModel + '_' + CFG.promptVer + '_' + TEXT
 const VEH = {car:{w:1.8,l:4.5}, truck:{w:2.5,l:8}, bus:{w:2.5,l:11}, motorcycle:{w:0.8,l:2.0}, bicycle:{w:0.6,l:1.8}};
 const SENS = {low:{thr:0.8,scene:0.45}, mid:{thr:0.7,scene:0.35}, high:{thr:0.55,scene:0.28}};
 // 실내에서는 나오기 어려운 항목 (실내 장면이 우세하면 '확인필요'로 낮춤)
+/* ---------- 탐지 모델(YOLOE) 클래스 — 순서는 equip.onnx 내보낼 때와 동일해야 함 ---------- */
+const EQ = [
+  {k:'excavator', label:'굴착기(포크레인)', maps:['m_excavator','risk_machine_hit']},
+  {k:'crane', label:'크레인', maps:['m_crane','risk_machine_hit','risk_drop']},
+  {k:'dump', label:'덤프트럭', maps:['m_dump','risk_machine_hit']},
+  {k:'forklift', label:'지게차', maps:['m_forklift','risk_machine_hit']},
+  {k:'bucket', label:'고소작업차(바가지차)', maps:['m_truck_lift','risk_fall']},
+  {k:'roller', label:'롤러', maps:['m_roller','risk_machine_hit']},
+  {k:'loader', label:'로더', maps:['m_loader','risk_machine_hit']},
+  {k:'pump', label:'펌프카', maps:['m_pump','risk_machine_hit']},
+  {k:'ladder', label:'사다리', maps:['risk_ladder','risk_fall']},
+  {k:'cones', label:'컬러콘(안전시설) 확인', maps:[], info:true},
+  {k:'manhole', label:'맨홀', maps:['site_manhole','risk_suffocate']},
+  {v:'car'}, {v:'truck'}, {v:'bus'}, {v:'motorcycle'}, {v:'person'}
+];
+const EQ_KEYS = new Set(EQ.filter(e => e.k).map(e => e.k));
 const OUTDOOR = new Set(['manhole','power','telecom','excavator','crane','dump','bucket','roller','loader','pump','trench','wet','ice','cones']);
 
 /* ---------- 유틸 ---------- */
@@ -2206,6 +2273,8 @@ async function resolvePaths(){
         CFG.transformers = base + 'vendor/transformers/transformers.min.js';
         CFG.wasmPaths = base + 'vendor/transformers/';
         CFG.cocoModelUrl = base + 'models/coco-ssd/model.json';
+        CFG.ort = base + 'vendor/ort/ort.wasm.min.mjs';
+        CFG.ortWasm = base + 'vendor/ort/';
         CFG.hfHost = base + 'models/';
       }
     }
@@ -2221,6 +2290,52 @@ function dlPct(){
 }
 function dlMB(){ let a = 0; Object.values(dl).forEach(x => a += x.loaded); return (a / 1048576).toFixed(0); }
 
+let det = null, detP = null, detKind = '', eqWorker = null, eqSeq = 0; const eqWait = new Map();
+function loadDetector(){
+  if (DEMO) return Promise.resolve(det = demoCoco(), detKind = 'demo');
+  if (detP) return detP;
+  detP = new Promise((resolve, reject) => {
+    let w;
+    try {
+      w = new Worker(URL.createObjectURL(new Blob([$('aiDetWorkerSrc').textContent], {type:'text/javascript'})), {type:'module'});
+    } catch(e){ return reject(e); }
+    const to = setTimeout(() => reject(new Error('탐지모델 로딩 시간초과')), 90000);
+    w.onmessage = ev => {
+      const m = ev.data;
+      if (m.type === 'ready'){ clearTimeout(to); eqWorker = w; det = eqDetector(); detKind = 'yoloe'; resolve(det); }
+      else if (m.type === 'error'){ clearTimeout(to); reject(new Error(m.message)); }
+      else if (m.type === 'det'){ const cb = eqWait.get(m.id); if (cb){ eqWait.delete(m.id); cb(m.boxes || []); } }
+    };
+    w.onerror = e => { clearTimeout(to); reject(new Error((e && e.message) || '탐지 워커 오류')); };
+    w.postMessage({type:'init', ortUrl:CFG.ort, wasmPaths:CFG.ortWasm, modelUrl:new URL(CFG.equipModel, location.href).href,
+      nClasses:EQ.length, size:CFG.eqSize});
+  }).catch(async e => {
+    console.warn('장비 탐지모델 실패 → COCO-SSD 대체:', e);
+    const el = $('aiLoad'); if (el) el.textContent = '⚠ 장비탐지 모델 없음 – 차량감지만 사용';
+    det = await loadCoco(); detKind = 'coco'; return det;
+  });
+  return detP;
+}
+const eqCv = document.createElement('canvas'); eqCv.width = eqCv.height = 480;
+const eqCtx = eqCv.getContext('2d', {willReadFrequently:true});
+function eqDetector(){
+  return {detect: (v) => new Promise(res => {
+    const vw = v.videoWidth, vh = v.videoHeight, Z = CFG.eqSize, sc = Z / Math.max(vw, vh);
+    eqCtx.fillStyle = 'rgb(114,114,114)'; eqCtx.fillRect(0, 0, Z, Z);
+    eqCtx.drawImage(v, 0, 0, vw * sc, vh * sc);
+    const img = eqCtx.getImageData(0, 0, Z, Z);
+    const id = ++eqSeq;
+    const timer = setTimeout(() => { eqWait.delete(id); res([]); }, 4000);
+    eqWait.set(id, boxes => {
+      clearTimeout(timer);
+      res(boxes.map(b => {
+        const e = EQ[b.c] || {};
+        return {class: e.v || ('eq_' + e.k), score: b.s, bbox: [b.x / sc, b.y / sc, b.w / sc, b.h / sc]};
+      }));
+    });
+    eqWorker.postMessage({type:'frame', id, buf:img.data.buffer, minScore:CFG.eqMinScore}, [img.data.buffer]);
+  })};
+}
 function loadCoco(){
   if (DEMO) return Promise.resolve(coco = demoCoco());
   if (!cocoP) cocoP = (async () => {
@@ -2291,7 +2406,7 @@ function newState(){
   return {t0:performance.now(), bins:new Array(36).fill(false), binKf:new Array(36).fill(false),
     heading:null, headHist:[], motion:[], sensor:false, sensorAt:0,
     gen:++GEN, kf:[], kfId:0, lastKf:0, shown:false, pending:0, nFull:0, sc, ob,
-    tracks:[], trackId:0, maxPersons:0, vehSeen:0, lastDet:0, live:[], done100:false, ended:false};
+    eq:{}, tracks:[], trackId:0, maxPersons:0, vehSeen:0, lastDet:0, live:[], done100:false, ended:false};
 }
 
 /* ---------- 방향 센서 (360° 커버리지) ---------- */
@@ -2435,13 +2550,25 @@ function iou(a, b){
 function handleDet(preds, t, vw){
   S.live = preds;
   let persons = 0;
+  const seenEq = new Set();
   preds.forEach(p => {
-    if (p.class === 'person') persons++;
+    if (p.class === 'person' && p.score >= 0.4) persons++;
+    if (p.class.startsWith('eq_')){
+      const k = p.class.slice(3); if (seenEq.has(k)) return; seenEq.add(k);
+      const st = S.eq[k] || (S.eq[k] = {n:0, maxS:0, thumb:'', lastThumb:0});
+      if (p.score >= 0.3) st.n++;
+      if (p.score > st.maxS){
+        st.maxS = p.score;
+        if (t - st.lastThumb > 800){ st.lastThumb = t; st.thumb = snapThumb(); }
+      }
+      return;
+    }
+    if (p.score < 0.4) return;
     const spec = VEH[p.class]; if (!spec) return;
     const bb = p.bbox; const edge = bb[0] < 3 || bb[0] + bb[2] > vw - 3;
     let best = null, bi = 0;
     S.tracks.forEach(tr => {
-      if (tr.cls !== p.class || t - tr.last > 700) return;
+      if (tr.cls !== p.class || t - tr.last > 1500) return;
       const sc = iou(tr.bb, bb); const cd = Math.abs((tr.bb[0] + tr.bb[2] / 2) - (bb[0] + bb[2] / 2));
       const s = Math.max(sc, cd < bb[2] * 0.7 ? 0.21 : 0);
       if (s > 0.2 && s > bi){ bi = s; best = tr; }
@@ -2465,6 +2592,10 @@ function handleDet(preds, t, vw){
   S.maxPersons = Math.max(S.maxPersons, persons);
   S.tracks = S.tracks.filter(tr => t - tr.last < 8000 || tr.speeds.length);
 }
+function snapThumb(){
+  try { const v = $('aiVideo'), vw = v.videoWidth, vh = v.videoHeight; const tw = 200, th = Math.round(200 * vh / vw);
+    thCv.width = tw; thCv.height = th; thCtx.drawImage(v, 0, 0, tw, th); return thCv.toDataURL('image/jpeg', 0.6); } catch(e){ return ''; }
+}
 function trafficSummary(){
   const med = a => { const b = a.slice().sort((x, y) => x - y); return b[Math.floor(b.length / 2)]; };
   let moving = 0, maxV = 0;
@@ -2478,9 +2609,10 @@ async function loop(){
   if (!running) return;
   const now = performance.now(), v = $('aiVideo');
   if (S.heading != null && S.sensor){ S.bins[Math.floor(S.heading / 10) % 36] = true; }
-  if (coco && !detBusy && now - S.lastDet > CFG.detIntervalMs && v.readyState >= 2){
+  const iv = detKind === 'yoloe' ? CFG.eqIntervalMs : CFG.detIntervalMs;
+  if (det && !detBusy && now - S.lastDet > iv && v.readyState >= 2 && v.videoWidth){
     detBusy = true; S.lastDet = now;
-    coco.detect(v, 20, 0.45).then(p => { if (running) handleDet(p, performance.now(), v.videoWidth); }).catch(() => {}).finally(() => detBusy = false);
+    det.detect(v, 20, 0.45).then(p => { if (running) handleDet(p, performance.now(), v.videoWidth); }).catch(() => {}).finally(() => detBusy = false);
   }
   captureKeyframe(now);
   if (DEMO && !S.sensor) demoHeading(now);
@@ -2501,9 +2633,9 @@ function draw(now){
       const veh = !!VEH[p.class]; const [x, y, w, h] = p.bbox;
       const tr = veh ? S.tracks.find(t => t.bb === p.bbox) : null;
       const sp = tr && tr.speeds.length ? Math.round(tr.speeds[tr.speeds.length - 1]) : null;
-      c.strokeStyle = veh ? '#ff5252' : (p.class === 'person' ? '#40c4ff' : '#ffd54f');
+      c.strokeStyle = veh ? '#ff5252' : (p.class === 'person' ? '#40c4ff' : (p.class.startsWith('eq_') ? '#ff9100' : '#ffd54f'));
       c.strokeRect(ox + x * s, oy + y * s, w * s, h * s);
-      const txt = (KO[p.class] || p.class) + (sp != null ? ' ≈' + sp + 'km/h' : '');
+      const txt = (KO[p.class] || p.class) + (sp != null ? ' ≈' + sp + 'km/h' : (p.class.startsWith('eq_') ? ' ' + Math.round(p.score * 100) + '%' : ''));
       const tw = c.measureText(txt).width + 8;
       c.fillStyle = c.strokeStyle; c.fillRect(ox + x * s, oy + y * s - 20, tw, 20);
       c.fillStyle = '#000'; c.fillText(txt, ox + x * s + 4, oy + y * s - 5);
@@ -2517,7 +2649,8 @@ function draw(now){
   if (cov >= 0.97 && !S.done100){ S.done100 = true; vib([60, 40, 60]); $('aiDone').classList.add('pulse'); $('aiHint').innerHTML = '✅ 한 바퀴 완료! 도로가 있으면 <b>차량 방향으로 3초 정지</b> 후 [스캔 완료]'; }
   if (!S.sensor && now - S.t0 > 2500 && !S._noSensorMsg){ S._noSensorMsg = true; $('aiHint').innerHTML = '방향센서 미지원 – <b>' + CFG.fallbackSec + '초 동안 천천히</b> 한 바퀴 돌아주세요'; }
 }
-const KO = {car:'승용차', truck:'트럭', bus:'버스', motorcycle:'오토바이', bicycle:'자전거', person:'사람', 'traffic light':'신호등', 'stop sign':'정지표지', 'fire hydrant':'소화전'};
+const KO = {eq_excavator:'포크레인', eq_crane:'크레인', eq_dump:'덤프', eq_forklift:'지게차', eq_bucket:'고소작업차', eq_roller:'롤러',
+  eq_loader:'로더', eq_pump:'펌프카', eq_ladder:'사다리', eq_cones:'컬러콘', eq_manhole:'맨홀', car:'승용차', truck:'트럭', bus:'버스', motorcycle:'오토바이', bicycle:'자전거', person:'사람', 'traffic light':'신호등', 'stop sign':'정지표지', 'fire hydrant':'소화전'};
 function drawRing(cov){
   const svg = $('aiRing'); if (!svg) return;
   if (!svg._built){
@@ -2559,8 +2692,20 @@ function buildFindings(live){
   });
   const has = {};
   const indoor = S.sc.indoor.n / nF >= 0.5;
+  const eqOK = detKind === 'yoloe' || detKind === 'demo';
+  if (eqOK) EQ.forEach(e => {
+    if (!e.k) return; const st = S.eq[e.k]; if (!st || !st.n) return;
+    let level = (st.n >= 2 && st.maxS >= 0.35) || st.maxS >= 0.6 ? 'high' : 'low';
+    let why = '탐지 ' + st.n + '회 · 최고 ' + Math.round(st.maxS * 100) + '%';
+    if (level === 'high' && indoor && OUTDOOR.has(e.k) && st.maxS < 0.7){ level = 'low'; why += ' · 실내 장면이라 확인필요'; }
+    if (level === 'high') has[e.k] = true;
+    out.push({key:'o_' + e.k, label:e.label, conf:st.maxS, level, thumb:st.thumb, maps:e.maps, info:!!e.info, why});
+  });
   OBJECTS.forEach(o => {
     const st = S.ob[o.k];
+    if (eqOK && EQ_KEYS.has(o.k)){ // 탐지모델이 맡는 항목: CLIP은 탐지모델이 못 잡은 맨홀/컬러콘만 보조
+      if (!(o.k === 'manhole' || o.k === 'cones') || out.some(x => x.key === 'o_' + o.k)) return;
+    }
     let level = null, why = '감지 ' + st.hits + '장면' + (st.supIds && st.supIds.size ? ' · 통신선으로 판단해 ' + st.supIds.size + '장면 제외' : '');
     const need = Math.max(2, Math.ceil(nF * 0.08));
     if (st.hits >= need) level = 'high'; else if (st.hits >= 1) level = 'low';
@@ -2708,7 +2853,7 @@ async function start(){
   running = true; S.t0 = performance.now();
   raf = requestAnimationFrame(loop);
   onProgress();
-  loadCoco().catch(e => { $('aiLoad').textContent = '⚠ 차량감지 모델 로드 실패: ' + e.message; });
+  loadDetector().catch(e => { $('aiLoad').textContent = '⚠ 감지 모델 로드 실패: ' + e.message; });
   startWorker().then(() => { if (clipErr) dropQueue(); flushQueue(); onProgress(); });
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e){}
 }
@@ -2740,7 +2885,7 @@ async function preload(){
   const bar = $('aiPreBar'); bar.style.display = 'block';
   $('aiPreloadBtn').disabled = true;
   onProgress();
-  try { await loadCoco(); } catch(e){ toast('차량감지 모델 로드 실패: ' + e.message, 4000); }
+  try { await loadDetector(); } catch(e){ toast('감지 모델 로드 실패: ' + e.message, 4000); }
   await startWorker();
   bar.firstElementChild.style.width = '100%';
   toast(clipErr ? 'AI 장면모델 로드 실패 – 네트워크 확인' : 'AI 모델 준비 완료 – 이 폰에 저장되었습니다', 3000);
@@ -2762,6 +2907,7 @@ function demoCoco(){
     const x = ((t * 0.35 * W) % (W * 1.3)) - W * 0.15;
     const out = [{class:'person', score:0.8, bbox:[W * 0.05, H * 0.3, W * 0.08, H * 0.4]}];
     if (x > 5 && x < W - W * 0.2) out.push({class:'car', score:0.9, bbox:[x, H * 0.62, W * 0.18, H * 0.16]});
+    if (Math.sin(t) > 0.3) out.push({class:'eq_excavator', score:0.72, bbox:[W * 0.55, H * 0.25, W * 0.3, H * 0.3]});
     return out;
   }};
 }
