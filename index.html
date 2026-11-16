@@ -2221,7 +2221,7 @@ const CFG = {
   hfHost: null,         // null = huggingface.co
   wasmPaths: null,      // null = jsdelivr
   clipModel: 'Xenova/clip-vit-base-patch32',
-  promptVer: 'p3',
+  promptVer: 'p4',
   fallbackSec: 20,      // 방향센서 없을 때 스캔 시간
   maxKeyframes: 40,
   detIntervalMs: 120,
@@ -2234,7 +2234,7 @@ const SCENES = [
   {k:'road_center', label:'도로 중앙 차선/교차로', maps:['site_road_center','risk_traffic'],
    p:['a photo taken standing in the middle of a busy multi-lane road with cars','a photo of a road intersection with traffic and crosswalks']},
   {k:'road_edge', label:'도로 가장자리 차선', maps:['site_road_edge','risk_traffic'],
-   p:['a photo of the edge of a road next to the curb with cars passing','a photo of a roadside shoulder beside traffic lanes']},
+   p:['a photo of the edge of an asphalt road with lane markings and cars driving past','a photo of a roadside shoulder beside moving traffic lanes']},
   {k:'alley', label:'골목길/농로/비포장', maps:['site_alley'],
    p:['a photo of a narrow alley between houses','a photo of an unpaved dirt road in farmland']},
   {k:'bridge', label:'교량/지하차도/터널', maps:['site_bridge'],
@@ -2246,7 +2246,8 @@ const SCENES = [
   {k:'slope', label:'비탈면/연약지반', maps:['site_soft_ground','risk_fall_over'],
    p:['a photo of a steep slope with rocks and soil','a photo of a hillside embankment']},
   {k:'site', label:null, maps:[], p:['a photo of a construction site with excavation and heavy equipment']},
-  {k:'other', label:null, maps:[], p:['a photo of a sidewalk','a photo of a parking lot','a photo of a park with trees','a photo of a building entrance']}
+  {k:'other', label:null, maps:[], p:['a photo of a sidewalk','a photo of a parking lot','a photo of cars parked on a gravel lot',
+    'a photo of an unpaved parking area next to a construction site','a photo of parked cars in a row','a photo of a park with trees','a photo of a building entrance']}
 ];
 const OBJECTS = [
   {k:'manhole', label:'맨홀', maps:['site_manhole','risk_suffocate'],
@@ -2690,9 +2691,9 @@ function snapThumb(){
 }
 function trafficSummary(){
   const med = a => { const b = a.slice().sort((x, y) => x - y); return b[Math.floor(b.length / 2)]; };
-  let moving = 0, maxV = 0;
-  S.tracks.forEach(tr => { if (tr.speeds.length >= 2){ const m = med(tr.speeds); if (m > 8){ moving++; maxV = Math.max(maxV, m); } } });
-  return {seen:S.vehSeen, moving, maxV:Math.round(maxV)};
+  let moving = 0, maxV = 0, parked = 0;
+  S.tracks.forEach(tr => { if (tr.speeds.length >= 2){ const m = med(tr.speeds); if (m > 8){ moving++; maxV = Math.max(maxV, m); } else parked++; } });
+  return {seen:S.vehSeen, moving, parked, maxV:Math.round(maxV)};
 }
 
 /* ---------- 메인 루프 ---------- */
@@ -2775,12 +2776,17 @@ function buildFindings(live){
   const sens = SENS[$('aiSens').value] || SENS.mid;
   const kfThumb = id => { const k = S.kf.find(x => x.id === id); return k ? k.thumb : ''; };
   const nF = Math.max(1, S.nFull);
+  const tfS = trafficSummary();
   SCENES.forEach(s => {
     if (!s.label) return; const st = S.sc[s.k];
     if (!st.n) return;
     const frac = st.n / nF, conf = st.psum / st.n;
-    const level = (st.n >= 2 && (frac >= 0.12 || st.n >= 4)) ? 'high' : 'low';
-    out.push({key:'s_' + s.k, label:s.label, conf, level, thumb:kfThumb(st.best), maps:s.maps, why:'장면 ' + st.n + '/' + nF + '프레임'});
+    let level = (st.n >= 2 && (frac >= 0.12 || st.n >= 4)) ? 'high' : 'low', why = '장면 ' + st.n + '/' + nF + '프레임';
+    // 도로 장면은 '주행 중' 차량이 확인되거나 장면 비중이 클 때만 자동 체크 (주차장·정차 차량 오인 방지)
+    if ((s.k === 'road_edge' || s.k === 'road_center') && level === 'high' && !(tfS.moving >= 1 || frac >= 0.35)){
+      level = 'low'; why += tfS.parked ? ' · 정차 차량만 보여 확인필요' : ' · 주행차량 미확인';
+    }
+    out.push({key:'s_' + s.k, label:s.label, conf, level, thumb:kfThumb(st.best), maps:s.maps, why});
   });
   const has = {};
   const indoor = S.sc.indoor.n / nF >= 0.5;
@@ -2810,11 +2816,17 @@ function buildFindings(live){
   // 차량(실시간 감지)
   const tf = trafficSummary();
   if (tf.seen >= 1){
-    const lbl = '주행차량 ' + (tf.moving || tf.seen) + '대' + (tf.maxV ? ' (최고 ≈' + tf.maxV + 'km/h)' : '');
-    const f = {key:'traffic', label:lbl, conf:Math.min(1, 0.5 + tf.seen * 0.1), level:(tf.moving >= 1 || tf.seen >= 3) ? 'high' : 'low',
-      thumb:'', maps:['risk_traffic'], why:'실시간 차량감지 · 속도는 참고용 추정'};
-    const road = out.some(x => (x.key === 's_road_center' || x.key === 's_road_edge') && x.level === 'high');
-    if (!road && tf.seen >= 3) f.maps = ['risk_traffic', 'site_road_edge'];
+    let f;
+    if (tf.moving >= 1){
+      f = {key:'traffic', label:'주행차량 ' + tf.moving + '대' + (tf.maxV ? ' (최고 ≈' + tf.maxV + 'km/h)' : ''), conf:Math.min(1, 0.6 + tf.moving * 0.1), level:'high',
+        thumb:'', maps:['risk_traffic'], why:'실시간 차량감지 · 속도는 참고용 추정' + (tf.parked ? ' · 정차 ' + tf.parked + '대 별도' : '')};
+    } else if (tf.parked >= 1 && tf.parked >= tf.seen * 0.5){
+      f = {key:'traffic', label:'정차/주차 차량 ' + tf.parked + '대 (주행 없음)', conf:0.6, level:'low', info:true, thumb:'', maps:[],
+        why:'움직임 없는 차량 – 교통사고 위험은 체크하지 않음'};
+    } else {
+      f = {key:'traffic', label:'차량 ' + tf.seen + '대 (주행 여부 미확인)', conf:0.5, level:'low', thumb:'', maps:['risk_traffic'],
+        why:'폰이 계속 움직여 속도를 못 쟀습니다 – 도로 쪽에서 3초 정지하면 판별'};
+    }
     if (tf.maxV >= 50){ f.danger = '고속차량(≈' + tf.maxV + 'km/h)'; f.todo = '방호차량·신호수 추가'; }
     else if (tf.seen >= 10){ f.danger = '차량 통행 많음'; f.todo = '신호수 배치·차로통제'; }
     out.push(f);
@@ -3154,7 +3166,7 @@ function recDraft(a){
   if (a.eq.debris) add(env, '철거자재·잔해 적치');
   if (eqs.length) add(env, [...new Set(eqs)].join('·') + ' 작업으로 혼잡도 높음');
   else if (S_.site) add(env, '공사현장 혼잡도 높음');
-  if (a.veh >= 3) add(env, '차량 통행 있음');
+  if (a.veh >= 2) add(env, '주변 차량(정차 포함) ' + a.veh + '대');
   if (a.person >= 3) add(env, '작업자 다수 혼재');
   if (a.dark) add(env, '야간/조도 부족');
   if (a.obj.wet) add(env, '노면 물기');
@@ -3164,7 +3176,7 @@ function recDraft(a){
   if (a.obj.trench) add(env, '굴착부 인접');
   if (a.eq.ladder) add(env, '사다리 작업');
   // 해소방안
-  const road = S_.road_center || S_.road_edge || a.veh >= 3;
+  const road = S_.road_center || S_.road_edge;
   if (road){ add(fix, '신호수 배치하여 차량 저속주행·순차적 일방통행 유도'); add(fix, '방호차량 배치 및 컬러콘 설치로 작업구간 확보'); }
   if (S_.alley && !road) add(fix, '신호수 양단 배치');
   if (eqs.length || S_.site){ add(fix, '현장 작업팀 협조 후 유도자/신호수 통제로 작업공간 확보'); add(fix, '장비 작업반경 내 출입통제'); }
