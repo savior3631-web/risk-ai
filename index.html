@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>현장 위험성 평가표(전송) 작성 V24 AI</title>
+<title>전안나 · 전송 안전 나눔</title>
 <meta name="theme-color" content="#2b1055">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -176,9 +176,9 @@ body.tab-rec > *:not(#recPanel):not(#aiTabs):not(h2):not(#toastMsg):not(#aiOverl
 .rec-ai{width:100%;height:52px;margin-top:10px;border:0;border-radius:12px;background:linear-gradient(135deg,#2b1055,#5b2a9d);color:#ffd54f;font-size:15.5px;font-weight:800;cursor:pointer}
 .rec-ai:disabled{opacity:.6}
 .rec-status{font-size:12.5px;color:#5b2a9d;margin-top:6px;min-height:16px}
-#recPhotos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+#recPhotos{display:grid;grid-template-columns:repeat(2,1fr);align-items:start;gap:6px;margin-top:8px}
 .rec-ph{position:relative}
-.rec-ph canvas{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;background:#eee}
+.rec-ph canvas{width:100%;height:auto;border-radius:8px;display:block;background:#eee}
 .rec-ph button{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:14px;cursor:pointer}
 .rec-ph .rec-tags{font-size:10.5px;color:#444;line-height:1.3;margin-top:2px}
 .rec-l{display:block;font-weight:800;font-size:14px;margin-top:4px}
@@ -1107,7 +1107,8 @@ function updateWeatherAlert(feel, wind, rain){
 <div id="weatherAlert" style="font-weight:bold;color:red;"></div>
 
 
-<h2>현장 위험성 평가표(전송) 작성 V24 <span style="font-size:14px;color:#6a1b9a">AI</span></h2>
+<h2 style="margin-bottom:2px">🦺 전안나 <span style="font-size:14px;color:#6a1b9a">전송 안전 나눔</span></h2>
+<div style="font-size:12.5px;color:#666;margin:0 0 8px">현장 위험성 평가표(전송) V25 · 우리 팀 안전 도우미 AI</div>
 <div id="aiTabs"><button type="button" class="on" data-tab="form">📋 위험성 평가표</button><button type="button" data-tab="rec">📸 복구현장 위험성평가</button></div>
 <div class="form">
 
@@ -1120,11 +1121,11 @@ function updateWeatherAlert(feel, wind, rain){
 
 <!-- ===== AI 현장 스캔 카드 ===== -->
 <div class="ai-card" id="aiCard">
-  <h3>🎥 AI 현장 스캔 (360°)</h3>
-  <p class="ai-sub">현장 도착 후 폰을 들고 <b>천천히 한 바퀴</b> 돌면, 맨홀·사다리·전력선·건설장비·도로/차량속도 등을 AI가 분석해 아래 평가표에 자동 체크합니다.<br>🔒 영상은 <b>저장·전송되지 않고 이 폰 안에서만</b> 분석됩니다.</p>
+  <h3>🦺 전안나 현장 스캔 (360°)</h3>
+  <p class="ai-sub"><b>전안나</b>(전송 안전 나눔)는 우리 팀 안전 도우미 AI예요. 현장 도착 후 폰을 들고 <b>천천히 한 바퀴</b> 돌면, 맨홀·사다리·전력선·건설장비·도로/차량속도 등을 전안나가 함께 살펴보고 아래 평가표에 체크해 드려요.<br>🔒 영상은 <b>저장·전송되지 않고 이 폰 안에서만</b> 분석됩니다.</p>
   <button type="button" class="ai-go" id="aiStartBtn">📹 360° 스캔 시작</button>
   <div class="ai-row">
-    <span class="ai-model" id="aiModelStatus">AI 모델: 확인 중…</span>
+    <span class="ai-model" id="aiModelStatus">전안나 준비 상태 확인 중…</span>
     <select id="aiSens" title="민감도">
       <option value="low">민감도 낮음</option>
       <option value="mid" selected>민감도 보통</option>
@@ -2030,7 +2031,7 @@ rfcRender();
     <input type="file" id="recCamIn" accept="image/*" capture="environment" style="display:none">
     <input type="file" id="recGalIn" accept="image/*" multiple style="display:none">
     <div id="recPhotos"></div>
-    <button type="button" class="rec-ai" id="recAnalyze">🤖 AI로 위험요인·해소방안 초안 작성</button>
+    <button type="button" class="rec-ai" id="recAnalyze">🦺 전안나에게 위험요인·해소방안 초안 부탁하기</button>
     <div class="rec-status" id="recStatus"></div>
   </div>
 
@@ -2066,7 +2067,7 @@ rfcRender();
   <div id="aiTop">
     <svg id="aiRing" viewBox="0 0 84 84"></svg>
     <div id="aiTopText">
-      <b id="aiTitle">360° 스캔</b>
+      <b id="aiTitle">전안나가 살펴보는 중</b>
       <div id="aiHint"></div>
       <div id="aiLoad"></div>
     </div>
@@ -2083,9 +2084,9 @@ rfcRender();
 <!-- ===== AI 결과 시트 ===== -->
 <div id="aiResult">
   <div id="aiSheet">
-    <h3>🤖 AI 현장 분석 결과</h3>
+    <h3>🦺 전안나가 살펴본 결과</h3>
     <div class="ai-stat" id="aiStat"></div>
-    <div class="ai-warn">AI는 <b>보조 수단</b>입니다. 체크된 항목을 눈으로 확인하고 맞지 않으면 해제하세요.<br>위험요인만 자동 체크되며, <b>안전대책은 작업자가 직접</b> 체크해야 합니다.</div>
+    <div class="ai-warn">전안나는 <b>보조 도우미</b>예요. 체크된 항목을 눈으로 확인하고 맞지 않으면 해제하세요.<br>위험요인만 자동 체크되며, <b>안전대책은 작업자가 직접</b> 체크해야 합니다.</div>
     <div id="aiSheetBody"></div>
     <div class="ai-btns">
       <button type="button" class="ai-re" id="aiRescan">다시 스캔</button>
@@ -2212,7 +2213,7 @@ const $ = id => document.getElementById(id);
 const CFG = {
   ort: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.wasm.min.mjs',
   ortWasm: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/',
-  equipModel: 'equip.onnx',   // index.html과 같은 폴더 (탐지 모델)
+  equipModel: 'equip.onnx', extModel: null,   // index.html과 같은 폴더 (탐지 모델)
   eqSize: 512, photoSize: 960, eqIntervalMs: 220, eqMinScore: 0.25,
   tfjs: 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js',
   coco: 'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js',
@@ -2300,27 +2301,58 @@ const VEH = {car:{w:1.8,l:4.5}, truck:{w:2.5,l:8}, bus:{w:2.5,l:11}, motorcycle:
 const SENS = {low:{thr:0.8,scene:0.45}, mid:{thr:0.7,scene:0.35}, high:{thr:0.55,scene:0.28}};
 // 실내에서는 나오기 어려운 항목 (실내 장면이 우세하면 '확인필요'로 낮춤)
 /* ---------- 탐지 모델(YOLOE) 클래스 — 순서는 equip.onnx 내보낼 때와 동일해야 함 ---------- */
-const EQ = [
-  {k:'excavator', label:'굴착기(포크레인)', maps:['m_excavator','risk_machine_hit']},
-  {k:'crane', label:'크레인', maps:['m_crane','risk_machine_hit','risk_drop']},
+const EQX = [
+  {k:'excavator', label:'굴착기(포크레인)', maps:['m_excavator','risk_machine_hit'], min:0.45},
+  {k:'bucket', label:'고소작업차(바가지차)', maps:['m_truck_lift','risk_fall'], min:0.4},
+  {k:'closure', label:'접속함체(접속작업)', maps:[], info:true, min:0.38},
+  {k:'tower', label:'기지국 철탑/안테나', maps:['risk_fall'], min:0.5},
+  {k:'rru', label:'옥상 중계기(RRU)', maps:['site_roof','risk_fall'], min:0.55},
+  {k:'pole', label:'전주', maps:[], info:true, min:0.4},
+  {k:'barrier', label:'방호벽(안전시설) 확인', maps:[], info:true, min:0.45},
+  {k:'robot', label:'에어로봇(안전시설) 확인', maps:[], info:true, min:0.45},
+  {k:'rack', label:'국사 장비랙(구내)', maps:['site_indoor'], min:0.5},
+  {k:'boom', label:'크레인·고소작업차(붐 장비)', maps:['m_truck_lift','risk_machine_hit','risk_fall']},
   {k:'dump', label:'덤프트럭', maps:['m_dump','risk_machine_hit']},
   {k:'forklift', label:'지게차', maps:['m_forklift','risk_machine_hit']},
-  {k:'bucket', label:'고소작업차(바가지차)', maps:['m_truck_lift','risk_fall']},
   {k:'roller', label:'롤러', maps:['m_roller','risk_machine_hit']},
   {k:'loader', label:'로더', maps:['m_loader','risk_machine_hit']},
   {a:'loader'},
-  {k:'machine', label:'건설장비(기타)', maps:['risk_machine_hit']},
-  {k:'pump', label:'펌프카', maps:['m_pump','risk_machine_hit']},
+  {k:'machine', label:'건설장비(굴착기 등)', maps:['risk_machine_hit']},
+  {a:'boom'},
   {k:'ladder', label:'사다리', maps:['risk_ladder','risk_fall']},
   {k:'cones', label:'컬러콘(안전시설) 확인', maps:[], info:true},
   {k:'manhole', label:'맨홀', maps:['site_manhole','risk_suffocate']},
   {k:'scissor', label:'시저형 고소작업대', maps:['m_scissor','risk_fall']},
-  {a:'scissor'},
   {k:'debris', label:'철거자재/잔해 적치', maps:['risk_fall_over'], danger:'자재 적치·통로 협소', todo:'적치물 정리·통로 확보'},
+  {k:'sign', label:'안전 입간판(위험표지) 확인', maps:[], info:true},
+  {a:'manhole'},
+  {k:'helmet', label:'안전모 착용 확인', maps:[], info:true},
+  {k:'vest', label:'안전조끼 착용 확인', maps:[], info:true},
   {v:'car'}, {v:'truck'}, {v:'bus'}, {v:'motorcycle'}, {v:'person'}
 ];
+/* 자체 학습모델용 클래스표 (2차 학습 후 사용 예정) */
+const EQ_TRAINED = [
+  {k:'excavator', label:'굴착기(포크레인)', maps:['m_excavator','risk_machine_hit'], min:0.35},
+  {k:'bucket', label:'고소작업차(바가지차)', maps:['m_truck_lift','risk_fall'], min:0.35},
+  {k:'crane', label:'크레인', maps:['m_crane','risk_machine_hit','risk_drop'], min:0.35},
+  {k:'dump', label:'덤프트럭', maps:['m_dump','risk_machine_hit'], min:0.35},
+  {k:'machine', label:'건설장비(기타)', maps:['risk_machine_hit'], min:0.4},
+  {k:'closure', label:'접속함체(접속작업)', maps:[], info:true, min:0.3},
+  {k:'splicer', label:'융착기(접속작업)', maps:[], info:true, min:0.3},
+  {k:'tower', label:'기지국 철탑/안테나', maps:['risk_fall'], min:0.35},
+  {k:'rru', label:'옥상 중계기(RRU)', maps:['site_roof','risk_fall'], min:0.4},
+  {k:'rack', label:'국사 장비랙(구내)', maps:['site_indoor'], min:0.4},
+  {k:'robot', label:'에어로봇(안전시설) 확인', maps:[], info:true, min:0.35},
+  {k:'barrier', label:'방호벽(안전시설) 확인', maps:[], info:true, min:0.35},
+  {k:'cones', label:'컬러콘(안전시설) 확인', maps:[], info:true, min:0.3},
+  {k:'sign', label:'안전 입간판(위험표지) 확인', maps:[], info:true, min:0.35},
+  {k:'manhole', label:'맨홀', maps:['site_manhole','risk_suffocate'], min:0.35},
+  {v:'person'}, {v:'car'}
+];
+const EQ = EQX;   // 현재 배포 모델: 오픈어휘 + 현장예시 모델
+const EQ_BY = {}; EQX.concat(EQ).forEach(e => { if (e.k && !EQ_BY['eq_' + e.k]) EQ_BY['eq_' + e.k] = e; }); EQ.forEach(e => { if (e.k) EQ_BY['eq_' + e.k] = e; });
 const EQ_KEYS = new Set(EQ.filter(e => e.k).map(e => e.k));
-const OUTDOOR = new Set(['machine','manhole','power','telecom','excavator','crane','dump','bucket','roller','loader','pump','trench','wet','ice','cones']);
+const OUTDOOR = new Set(['boom','tower','pole','barrier','robot','machine','manhole','power','telecom','excavator','crane','dump','bucket','roller','loader','pump','trench','wet','ice','cones']);
 
 /* ---------- 유틸 ---------- */
 function loadScript(src){
@@ -2343,7 +2375,7 @@ function labelOf(v){
   const el = document.querySelector('input[type="checkbox"][value="'+v+'"]');
   if (!el) return v;
   const lb = el.closest('label'); let t = lb ? lb.textContent : v;
-  t = t.replace(/\[위험요인\]\s*/, '').replace(/AI$/, '').trim();
+  t = t.replace(/\[위험요인\]\s*/, '').replace(/(AI|전안나)$/, '').trim();
   return t.length > 18 ? t.slice(0, 17) + '…' : t;
 }
 
@@ -2378,54 +2410,61 @@ function dlPct(){
 }
 function dlMB(){ let a = 0; Object.values(dl).forEach(x => a += x.loaded); return (a / 1048576).toFixed(0); }
 
-let det = null, detP = null, detKind = '', eqWorker = null, eqSeq = 0; const eqWait = new Map();
-function loadDetector(){
-  if (DEMO) return Promise.resolve(det = demoCoco(), detKind = 'demo');
-  if (detP) return detP;
-  detP = new Promise((resolve, reject) => {
+let det = null, detP = null, detKind = '', eqSeq = 0; const eqWait = new Map();
+let MAIN = null, EXT = null, extP = null;   // MAIN: 전안나 학습모델(equip.onnx), EXT: 보조 오픈어휘모델(equip_ext.onnx, 사진 탭 전용)
+function spawnDet(file, list){
+  return new Promise((resolve, reject) => {
     let w;
-    try {
-      w = new Worker(URL.createObjectURL(new Blob([$('aiDetWorkerSrc').textContent], {type:'text/javascript'})), {type:'module'});
-    } catch(e){ return reject(e); }
-    const to = setTimeout(() => reject(new Error('탐지모델 로딩 시간초과')), 90000);
+    try { w = new Worker(URL.createObjectURL(new Blob([$('aiDetWorkerSrc').textContent], {type:'text/javascript'})), {type:'module'}); }
+    catch(e){ return reject(e); }
+    const to = setTimeout(() => reject(new Error('탐지모델 로딩 시간초과')), 120000);
     w.onmessage = ev => {
       const m = ev.data;
-      if (m.type === 'ready'){ clearTimeout(to); eqWorker = w; det = eqDetector(); detKind = 'yoloe'; resolve(det); }
+      if (m.type === 'ready'){ clearTimeout(to); resolve({w, list}); }
       else if (m.type === 'error'){ clearTimeout(to); reject(new Error(m.message)); }
       else if (m.type === 'det'){ const cb = eqWait.get(m.id); if (cb){ eqWait.delete(m.id); cb(m.boxes || []); } }
     };
     w.onerror = e => { clearTimeout(to); reject(new Error((e && e.message) || '탐지 워커 오류')); };
-    w.postMessage({type:'init', ortUrl:CFG.ort, wasmPaths:CFG.ortWasm, modelUrl:new URL(CFG.equipModel, location.href).href,
-      nClasses:EQ.length, size:CFG.eqSize});
-  }).catch(async e => {
+    w.postMessage({type:'init', ortUrl:CFG.ort, wasmPaths:CFG.ortWasm, modelUrl:new URL(file, location.href).href, nClasses:list.length, size:CFG.eqSize});
+  });
+}
+function loadDetector(){
+  if (DEMO) return Promise.resolve(det = demoCoco(), detKind = 'demo');
+  if (detP) return detP;
+  detP = spawnDet(CFG.equipModel, EQ).then(D => { MAIN = D; det = {detect: v => eqRun(v, v.videoWidth, v.videoHeight, CFG.eqSize, MAIN)}; detKind = 'yoloe'; return det; })
+  .catch(async e => {
     console.warn('장비 탐지모델 실패 → COCO-SSD 대체:', e);
     const el = $('aiLoad'); if (el) el.textContent = '⚠ 장비탐지 모델 없음 – 차량감지만 사용';
     det = await loadCoco(); detKind = 'coco'; return det;
   });
   return detP;
 }
+function loadExt(){
+  if (DEMO || !CFG.extModel) return Promise.resolve(null);
+  if (!extP) extP = spawnDet(CFG.extModel, EQX).then(D => (EXT = D)).catch(e => { console.warn('보조모델 없음', e); return null; });
+  return extP;
+}
 const eqCv = document.createElement('canvas'); eqCv.width = eqCv.height = 480;
 const eqCtx = eqCv.getContext('2d', {willReadFrequently:true});
-function eqDetector(){
-  return {detect: (v) => eqRun(v, v.videoWidth, v.videoHeight, CFG.eqSize)};
-}
-function eqRun(v, vw, vh, Z){
+function eqRun(v, vw, vh, Z, D){
+  D = D || MAIN;
   return new Promise(res => {
+    if (!D){ res([]); return; }
     if (eqCv.width !== Z){ eqCv.width = eqCv.height = Z; }
     const sc = Z / Math.max(vw, vh);
     eqCtx.fillStyle = 'rgb(114,114,114)'; eqCtx.fillRect(0, 0, Z, Z);
     eqCtx.drawImage(v, 0, 0, vw * sc, vh * sc);
     const img = eqCtx.getImageData(0, 0, Z, Z);
     const id = ++eqSeq;
-    const timer = setTimeout(() => { eqWait.delete(id); res([]); }, Z > 600 ? 20000 : 4000);
+    const timer = setTimeout(() => { eqWait.delete(id); res([]); }, Z > 600 ? 25000 : 4000);
     eqWait.set(id, boxes => {
       clearTimeout(timer);
       res(boxes.map(b => {
-        const e = EQ[b.c] || {};
-        return {class: e.v || ('eq_' + (e.k || e.a)), score: b.s, bbox: [b.x / sc, b.y / sc, b.w / sc, b.h / sc]};
-      }));
+        const e = D.list[b.c] || {};
+        return {class: e.v || ('eq_' + (e.k || e.a)), score: b.s, min: e.min || 0, bbox: [b.x / sc, b.y / sc, b.w / sc, b.h / sc]};
+      }).filter(p => p.class !== 'eq_undefined' && p.score >= p.min));
     });
-    eqWorker.postMessage({type:'frame', id, size:Z, buf:img.data.buffer, minScore:CFG.eqMinScore}, [img.data.buffer]);
+    D.w.postMessage({type:'frame', id, size:Z, buf:img.data.buffer, minScore:CFG.eqMinScore}, [img.data.buffer]);
   });
 }
 function loadCoco(){
@@ -2470,21 +2509,21 @@ function startWorker(){
 function updateModelStatus(){
   const el = $('aiModelStatus'); if (!el) return;
   if (DEMO) el.textContent = '🧪 데모 모드 (가상 분석)';
-  else if (clipErr) el.textContent = '⚠ AI 장면모델 로드 실패 – 차량감지만 동작';
-  else if (clipReady) el.textContent = '✅ AI 모델 준비완료 (이 폰에 저장됨)';
+  else if (clipErr) el.textContent = '⚠ 전안나 장면 판단 준비 실패 – 장비·차량 감지만 동작';
+  else if (clipReady) el.textContent = '✅ 전안나 준비 완료 (이 폰에 저장됨)';
   else if (lsGet('ai_models_ready')) el.textContent = '✅ 이 폰에 저장됨 (스캔 시 바로 실행)';
-  else el.textContent = 'AI 모델: 처음 1회 약 150MB 다운로드 필요' + (selfHost ? ' (사내 GitLab)' : '');
+  else el.textContent = '전안나: 처음 1회 약 170MB 다운로드 필요' + (selfHost ? ' (사내 GitLab)' : '');
 }
 function onProgress(){
   const p = dlPct();
   const bar = $('aiPreBar');
   if (bar && bar.style.display === 'block') bar.firstElementChild.style.width = (clipReady ? 100 : p) + '%';
   const st = $('aiModelStatus');
-  if (st && !clipReady && !clipErr && Object.keys(dl).length) st.textContent = '⬇ AI 모델 받는 중… ' + p + '% (' + dlMB() + 'MB)';
+  if (st && !clipReady && !clipErr && Object.keys(dl).length) st.textContent = '⬇ 전안나 준비 중… ' + p + '% (' + dlMB() + 'MB)';
   const ld = $('aiLoad');
   if (ld){
     if (clipErr) ld.textContent = '⚠ 장면분석 모델 사용 불가 – 차량 감지만 진행';
-    else if (!clipReady) ld.textContent = '⬇ AI 장면모델 준비 중 ' + p + '% – 계속 촬영하세요 (촬영분은 준비 후 분석)';
+    else if (!clipReady) ld.textContent = '⬇ 전안나 장면 판단 준비 중 ' + p + '% – 계속 촬영하세요 (촬영분은 준비 후 분석)';
     else ld.textContent = '';
   }
   renderWait();
@@ -2738,12 +2777,12 @@ function draw(now){
   const cov = coverage(now);
   drawRing(cov);
   const sec = Math.round((now - S.t0) / 1000);
-  $('aiTitle').textContent = '360° 스캔 ' + Math.round(cov * 100) + '% · ' + sec + '초';
+  $('aiTitle').textContent = '전안나 360° 스캔 ' + Math.round(cov * 100) + '% · ' + sec + '초';
   if (cov >= 0.97 && !S.done100){ S.done100 = true; vib([60, 40, 60]); $('aiDone').classList.add('pulse'); $('aiHint').innerHTML = '✅ 한 바퀴 완료! 도로가 있으면 <b>차량 방향으로 3초 정지</b> 후 [스캔 완료]'; }
   if (!S.sensor && now - S.t0 > 2500 && !S._noSensorMsg){ S._noSensorMsg = true; $('aiHint').innerHTML = '방향센서 미지원 – <b>' + CFG.fallbackSec + '초 동안 천천히</b> 한 바퀴 돌아주세요'; }
 }
 const KO = {eq_excavator:'포크레인', eq_crane:'크레인', eq_dump:'덤프', eq_forklift:'지게차', eq_bucket:'고소작업차', eq_roller:'롤러',
-  eq_loader:'로더', eq_pump:'펌프카', eq_ladder:'사다리', eq_cones:'컬러콘', eq_manhole:'맨홀', eq_machine:'건설장비', eq_scissor:'고소작업대', eq_debris:'잔해', car:'승용차', truck:'트럭', bus:'버스', motorcycle:'오토바이', bicycle:'자전거', person:'사람', 'traffic light':'신호등', 'stop sign':'정지표지', 'fire hydrant':'소화전'};
+  eq_loader:'로더', eq_pump:'펌프카', eq_ladder:'사다리', eq_cones:'컬러콘', eq_manhole:'맨홀', eq_machine:'건설장비', eq_scissor:'고소작업대', eq_debris:'잔해', eq_sign:'입간판', eq_splicer:'융착기', eq_crane:'크레인', eq_cones:'컬러콘', eq_bucket:'고소작업차', eq_closure:'접속함체', eq_tower:'철탑', eq_rru:'중계기', eq_pole:'전주', eq_barrier:'방호벽', eq_robot:'에어로봇', eq_rack:'장비랙', eq_boom:'붐장비', eq_helmet:'안전모', eq_vest:'안전조끼', car:'차량', truck:'트럭', bus:'버스', motorcycle:'오토바이', bicycle:'자전거', person:'사람', 'traffic light':'신호등', 'stop sign':'정지표지', 'fire hydrant':'소화전'};
 function drawRing(cov){
   const svg = $('aiRing'); if (!svg) return;
   if (!svg._built){
@@ -2854,7 +2893,7 @@ function renderWait(){
   if (waiting){
     const total = S.kf.length * 2, done = total - S.pending;
     const loading = !clipReady;
-    box.innerHTML = '<div class="ai-wait">' + (loading ? '⬇ AI 모델 준비 중… ' + dlPct() + '%<br><small>처음 1회만 다운로드, 이후 이 폰에서 바로 실행</small>' : '🔍 촬영 장면 분석 중… ' + done + ' / ' + total) +
+    box.innerHTML = '<div class="ai-wait">' + (loading ? '⬇ 전안나 준비 중… ' + dlPct() + '%<br><small>처음 1회만 다운로드, 이후 이 폰에서 바로 실행</small>' : '🦺 전안나가 촬영 장면 보는 중… ' + done + ' / ' + total) +
       '<div class="ai-bar"><i style="width:' + (loading ? dlPct() : Math.round(done / Math.max(1, total) * 100)) + '%"></i></div>' +
       '<br><button type="button" class="ai-mini" style="color:#6a1b9a;border-color:#6a1b9a" onclick="AIScan.showNow()">기다리지 않고 지금까지 결과 보기</button></div>';
     $('aiApply').disabled = true;
@@ -2893,12 +2932,12 @@ function fillTexts(){
   const sel = selected(); const tf = trafficSummary();
   const names = sel.filter(f => !f.info).map(f => f.label.replace(/\s*\(.*\)$/, ''));
   const cones = sel.some(f => f.key === 'o_cones');
-  let site = names.length ? 'AI스캔: ' + names.slice(0, 5).join('·') + ' 확인' : 'AI스캔: 특이 위험요소 미감지';
+  let site = names.length ? '전안나: ' + names.slice(0, 5).join('·') + ' 확인' : '전안나: 특이 위험요소 미감지';
   if (tf.maxV) site += ', 차량 최고≈' + tf.maxV + 'km/h';
   if (cones) site += ', 컬러콘 설치됨';
   const dg = [...new Set(sel.map(f => f.danger).filter(Boolean))], td = [...new Set(sel.map(f => f.todo).filter(Boolean))];
   $('aiTxtSite').value = site;
-  $('aiTxtDanger').value = dg.length ? 'AI: ' + dg.slice(0, 3).join(', ') : '';
+  $('aiTxtDanger').value = dg.length ? '전안나: ' + dg.slice(0, 3).join(', ') : '';
   $('aiTxtTodo').value = td.length ? td.slice(0, 3).join(', ') : '';
 }
 
@@ -2906,13 +2945,13 @@ function fillTexts(){
 function markAI(el){
   const lb = el.closest('label'); if (!lb || lb.classList.contains('ai-marked')) return;
   lb.classList.add('ai-marked');
-  const b = document.createElement('span'); b.className = 'ai-badge'; b.textContent = 'AI'; lb.appendChild(b);
+  const b = document.createElement('span'); b.className = 'ai-badge'; b.textContent = '전안나'; lb.appendChild(b);
   el.addEventListener('change', function un(){ if (!el.checked){ lb.classList.remove('ai-marked'); b.remove(); el.removeEventListener('change', un); } });
 }
 function setText(id, val){
   const el = $(id); if (!el || !val) return false;
   const cur = el.value.trim();
-  if (!cur || /^AI/.test(cur)){ el.value = val; return true; }
+  if (!cur || /^(AI|전안나)/.test(cur)){ el.value = val; return true; }
   return false;
 }
 function apply(){
@@ -2936,7 +2975,7 @@ function apply(){
   closeResult();
   try { if (typeof generateImage === 'function') generateImage(); } catch(e){}
   vib([80, 40, 80]);
-  toast('AI 결과 ' + n + '개 체크 반영 – 안전대책은 직접 확인·체크하세요', 3500);
+  toast('전안나 결과 ' + n + '개 체크 반영 – 안전대책은 직접 확인·체크하세요', 3500);
   const pre = $('sec_prework'); if (pre && vals.size) setTimeout(() => (($('sec_site') || pre).scrollIntoView({behavior:'smooth', block:'start'})), 300);
 }
 
@@ -2992,7 +3031,7 @@ async function preload(){
   try { await loadDetector(); } catch(e){ toast('감지 모델 로드 실패: ' + e.message, 4000); }
   await startWorker();
   bar.firstElementChild.style.width = '100%';
-  toast(clipErr ? 'AI 장면모델 로드 실패 – 네트워크 확인' : 'AI 모델 준비 완료 – 이 폰에 저장되었습니다', 3000);
+  toast(clipErr ? '전안나 준비 실패 – 네트워크 확인' : '전안나 준비 완료 – 이 폰에 저장되었습니다', 3000);
   $('aiPreloadBtn').disabled = false;
   updateModelStatus();
 }
@@ -3079,6 +3118,28 @@ function recRender(){
     d.append(cv, x, tg); box.appendChild(d);
   });
 }
+// 전체 + 좌/우(또는 위/아래) 분할 탐지 → 가장자리에 잘린 장비도 크게 보고 찾음
+const EXT_ONLY = new Set(['ladder','scissor','debris','helmet','vest','forklift','roller','loader']);
+async function recDetectTiled(c){
+  const W = c.width, H = c.height, all = [];
+  const full = await eqRun(c, W, H, CFG.photoSize); all.push(...full);
+  const tiles = W > H * 1.2 ? [[0, 0, W * 0.6, H], [W * 0.4, 0, W * 0.6, H]] : H > W * 1.2 ? [[0, 0, W, H * 0.6], [0, H * 0.4, W, H * 0.6]] : [];
+  for (const [x, y, w, h] of tiles){
+    const t = document.createElement('canvas'); t.width = Math.round(w); t.height = Math.round(h);
+    t.getContext('2d').drawImage(c, x, y, w, h, 0, 0, t.width, t.height);
+    const r = await eqRun(t, t.width, t.height, 640);
+    r.forEach(b => all.push({class:b.class, score:b.score, bbox:[b.bbox[0] + x, b.bbox[1] + y, b.bbox[2], b.bbox[3]]}));
+  }
+  // 보조모델: 학습모델에 없는 항목(사다리·시저리프트·잔해·안전모·조끼·지게차·롤러·로더)만 보충
+  const X = EXT || await loadExt();
+  if (X){ const r = await eqRun(c, W, H, CFG.photoSize, X); r.filter(b => EXT_ONLY.has(b.class.slice(3))).forEach(b => all.push(b)); }
+  const iou = (a, b) => { const x1 = Math.max(a[0], b[0]), y1 = Math.max(a[1], b[1]), x2 = Math.min(a[0] + a[2], b[0] + b[2]), y2 = Math.min(a[1] + a[3], b[1] + b[3]);
+    const i = Math.max(0, x2 - x1) * Math.max(0, y2 - y1); return i / Math.min(a[2] * a[3], b[2] * b[3]) ; };
+  all.sort((a, b) => b.score - a.score);
+  const keep = [];
+  all.forEach(b => { if (!keep.some(k => k.class === b.class && iou(k.bbox, b.bbox) > 0.6)) keep.push(b); });
+  return keep;
+}
 function recBright(c){
   const t = document.createElement('canvas'); t.width = t.height = 32; const x = t.getContext('2d'); x.drawImage(c, 0, 0, 32, 32);
   const d = x.getImageData(0, 0, 32, 32).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
@@ -3098,19 +3159,19 @@ async function recAnalyze(){
   if (!REC.photos.length){ toast('먼저 사진을 추가하세요'); return; }
   const btn = $('recAnalyze'), st = $('recStatus'); btn.disabled = true;
   try {
-    st.textContent = '⏳ AI 모델 준비 중… (처음 1회는 다운로드로 시간이 걸립니다)';
+    st.textContent = '⏳ 전안나 준비 중… (처음 1회는 다운로드로 시간이 걸려요)';
     await resolvePathsOnce();
-    const dP = loadDetector().catch(() => null); const wP = startWorker();
+    const dP = loadDetector().catch(() => null); loadExt(); const wP = startWorker();
     await dP;
     if (detKind !== 'yoloe' && !DEMO) st.textContent = '⚠ 장비 탐지모델을 불러오지 못해 장면 분석만 진행합니다';
     const agg = {eq:{}, veh:0, person:0, dark:false, scene:{}, obj:{}};
     let i = 0;
     for (const p of REC.photos){
-      i++; st.textContent = '🔍 사진 분석 중 ' + i + ' / ' + REC.photos.length;
+      i++; st.textContent = '🦺 전안나가 사진 보는 중 ' + i + ' / ' + REC.photos.length;
       p.tags = []; p.boxes = [];
       // ① 탐지 (고해상도)
       if (detKind === 'yoloe'){
-        const preds = await eqRun(p.c, p.c.width, p.c.height, CFG.photoSize);
+        const preds = await recDetectTiled(p.c);
         preds.filter(b => b.score >= (b.class.startsWith('eq_') ? 0.35 : 0.4)).forEach(b => {
           p.boxes.push({cls:b.class, s:b.score, x:b.bbox[0], y:b.bbox[1], w:b.bbox[2], h:b.bbox[3]});
           if (b.class.startsWith('eq_')){ const k = b.class.slice(3); agg.eq[k] = Math.max(agg.eq[k] || 0, b.score); }
@@ -3123,7 +3184,7 @@ async function recAnalyze(){
       // 조도
       if (recBright(p.c) < 70){ agg.dark = true; p.tags.push('조도 낮음'); }
       // ② 장면 (CLIP)
-      if (i === 1){ st.textContent = '⏳ 장면분석 모델 준비 중…'; await Promise.race([wP, new Promise(r => setTimeout(r, 120000))]); st.textContent = '🔍 사진 분석 중 ' + i + ' / ' + REC.photos.length; }
+      if (i === 1){ st.textContent = '⏳ 장면분석 모델 준비 중…'; await Promise.race([wP, new Promise(r => setTimeout(r, 120000))]); st.textContent = '🦺 전안나가 사진 보는 중 ' + i + ' / ' + REC.photos.length; }
       const sims = await recClip(p.c);
       if (sims){
         const mx = idx => { let m = -1; idx.forEach(j => { if (sims[j] > m) m = sims[j]; }); return m; };
@@ -3143,7 +3204,7 @@ async function recAnalyze(){
     const e = $('recEnv'), f = $('recFix');
     if (!e.value.trim() || e.dataset.ai === '1'){ e.value = env; e.dataset.ai = '1'; }
     if (!f.value.trim() || f.dataset.ai === '1'){ f.value = fix; f.dataset.ai = '1'; }
-    st.textContent = '✅ 초안 작성 완료 – 현장 상황에 맞게 수정하세요 (협조 업체명 등)';
+    st.textContent = '✅ 전안나 초안 완성 – 현장 상황에 맞게 다듬어 주세요 (협조 업체명 등)';
     recCompose();
   } catch(err){ st.textContent = '⚠ 분석 실패: ' + err.message; }
   btn.disabled = false;
@@ -3160,9 +3221,10 @@ function recDraft(a){
   if (S_.bridge) add(env, '교량/지하차도 구간');
   if (S_.rooftop) add(env, '옥상 작업(추락 위험)');
   if (S_.slope) add(env, '비탈면/연약지반');
-  const eqNames = {excavator:'굴착기', crane:'크레인', dump:'덤프트럭', forklift:'지게차', bucket:'고소작업차', roller:'롤러', loader:'로더', machine:'건설장비', pump:'펌프카', scissor:'리프트(고소작업대)'};
+  const eqNames = {excavator:'굴착기', crane:'크레인', boom:'크레인/고소작업차', dump:'덤프트럭', forklift:'지게차', bucket:'고소작업차', roller:'롤러', loader:'로더', machine:'건설장비', scissor:'리프트(고소작업대)'};
   let eqs = Object.keys(a.eq).filter(k => eqNames[k]).sort((x, y) => a.eq[y] - a.eq[x]).map(k => eqNames[k]);
   if (eqs.length > 1) eqs = eqs.filter(n => n !== '건설장비');
+  if (a.eq.bucket) eqs = eqs.filter(n => n !== '크레인/고소작업차');
   if (a.eq.debris) add(env, '철거자재·잔해 적치');
   if (eqs.length) add(env, [...new Set(eqs)].join('·') + ' 작업으로 혼잡도 높음');
   else if (S_.site) add(env, '공사현장 혼잡도 높음');
@@ -3175,6 +3237,11 @@ function recDraft(a){
   if (a.obj.manhole || a.eq.manhole) add(env, '맨홀 작업');
   if (a.obj.trench) add(env, '굴착부 인접');
   if (a.eq.ladder) add(env, '사다리 작업');
+  if (a.eq.closure) add(env, '접속함체 접속작업');
+  if (a.eq.tower) add(env, '기지국 철탑/안테나 인접');
+  if (a.eq.rru) add(env, '옥상 중계기 작업(추락 위험)');
+  if (a.eq.rack) add(env, '국사(구내) 장비실 작업');
+  if (a.eq.pole && (a.eq.bucket || a.eq.boom || a.eq.ladder)) add(env, '전주 고소작업');
   // 해소방안
   const road = S_.road_center || S_.road_edge;
   if (road){ add(fix, '신호수 배치하여 차량 저속주행·순차적 일방통행 유도'); add(fix, '방호차량 배치 및 컬러콘 설치로 작업구간 확보'); }
@@ -3185,10 +3252,19 @@ function recDraft(a){
   if (a.dark) add(fix, '복구작업구간 스탠드 LED 설치로 시야확보');
   if (a.obj.wet || a.obj.ice) add(fix, '미끄럼 주의 및 노면 정리');
   if (a.obj.power || a.obj.transformer) add(fix, '검전 및 이격거리 확보, 절연장갑 착용');
-  if (a.obj.manhole || a.eq.manhole) add(fix, '맨홀 환기 및 가스측정 후 진입');
+  if (a.obj.manhole || a.eq.manhole){ add(fix, '맨홀 환기 및 유해가스 측정 후 진입'); if (!a.eq.sign) add(fix, '질식위험공간 입간판 설치 및 관계자 외 출입통제'); }
+  if (a.eq.sign && (a.obj.manhole || a.eq.manhole)) add(fix, '질식위험공간 입간판 설치 완료');
   if (a.obj.trench) add(fix, '굴착부 안전펜스 설치');
   if (a.eq.ladder || a.eq.scissor || S_.rooftop) add(fix, '고소작업 안전대 착용 및 하부 통제');
-  if (a.eq.cones) add(fix, '컬러콘 설치 확인');
+  if (a.eq.bucket || a.eq.boom) add(fix, '고소작업차 아웃트리거 설치, 작업반경 내 접근금지 및 버킷 내 안전대 체결');
+  if (a.eq.closure) add(fix, '접속작업 공간 확보 및 작업자 보호구 착용');
+  if (a.eq.tower) add(fix, '철탑 승탑 시 안전대 체결 및 전자파 구역 확인');
+  if (a.eq.rru) add(fix, '옥상 끝단 접근통제 및 안전대 체결');
+  if (a.eq.rack) add(fix, '운용 장비 오조작 주의 및 작업구역 표시');
+  const done = [];
+  if (a.eq.cones) done.push('컬러콘'); if (a.eq.barrier) done.push('방호벽'); if (a.eq.robot) done.push('에어로봇'); if (a.eq.sign && !(a.obj.manhole || a.eq.manhole)) done.push('입간판');
+  if (done.length) add(fix, done.join('·') + ' 설치 완료');
+  if (a.eq.helmet || a.eq.vest) add(fix, '작업자 안전모·안전조끼 착용 확인');
   if (!env.length) add(env, '특이 위험요인 없음');
   if (!fix.length) add(fix, '작업구간 안전표지 설치 및 주변 통제');
   return {env:env.join(', '), fix:fix.join('\n')};
@@ -3216,11 +3292,13 @@ function recWrap(ctx, text, maxW){
 }
 function recBuildImage(){
   const W = 1080, pad = 30, cv = $('recCanvas'), ctx = cv.getContext('2d');
-  const ph = REC.photos.slice(0, 6), cols = ph.length <= 1 ? 1 : 2, cellW = (W - pad * 2 - (cols - 1) * 12) / cols, cellH = ph.length <= 1 ? cellW * 0.75 : cellW * 0.8;
-  const rows = Math.ceil(ph.length / cols);
+  const ph = REC.photos.slice(0, 6), cols = ph.length <= 2 ? 1 : 2, cellW = (W - pad * 2 - (cols - 1) * 12) / cols;
+  // 사진 비율 그대로 (잘림 없음): 행마다 가장 긴 사진 높이에 맞춤
+  const rowsH = []; for (let i = 0; i < ph.length; i += cols){ rowsH.push(Math.max(...ph.slice(i, i + cols).map(p => cellW * p.c.height / p.c.width))); }
+  const rows = rowsH.length, cellH = 0, photoH = rowsH.reduce((a, b) => a + b + 12, 0);
   ctx.font = '30px sans-serif';
   const lines = recWrap(ctx, recText(), W - pad * 2);
-  const H = 110 + rows * (cellH + 12) + lines.length * 44 + pad * 2 + 40;
+  const H = 110 + photoH + lines.length * 44 + pad * 2 + 40;
   cv.width = W; cv.height = H;
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#2b1055'; ctx.fillRect(0, 0, W, 90);
@@ -3231,14 +3309,14 @@ function recBuildImage(){
   const tmp = document.createElement('canvas');
   ph.forEach((p, i) => {
     recDrawPhoto(p, tmp, true);
-    const x = pad + (i % cols) * (cellW + 12), y = 110 + Math.floor(i / cols) * (cellH + 12);
-    const s = Math.max(cellW / tmp.width, cellH / tmp.height), sw = cellW / s, sh = cellH / s;
-    ctx.drawImage(tmp, (tmp.width - sw) / 2, (tmp.height - sh) / 2, sw, sh, x, y, cellW, cellH);
+    const r = Math.floor(i / cols), x = pad + (i % cols) * (cellW + 12), y = 110 + rowsH.slice(0, r).reduce((a, b) => a + b + 12, 0);
+    const h = cellW * tmp.height / tmp.width;
+    ctx.drawImage(tmp, 0, 0, tmp.width, tmp.height, x, y + (rowsH[r] - h) / 2, cellW, h);
   });
-  let y = 110 + rows * (cellH + 12) + 30;
+  let y = 110 + photoH + 30;
   ctx.fillStyle = '#222'; ctx.font = '30px sans-serif';
   lines.forEach((l, i) => { ctx.font = (i === 0 ? 'bold ' : '') + '30px sans-serif'; ctx.fillText(l, pad, y); y += 44; });
-  ctx.fillStyle = '#999'; ctx.font = '20px sans-serif'; ctx.fillText('AI 초안 기반 · 작업자 확인 후 작성 · 사진은 폰 내부에서만 분석', pad, H - 24);
+  ctx.fillStyle = '#999'; ctx.font = '20px sans-serif'; ctx.fillText('전안나(전송 안전 나눔) 초안 · 작업자 확인 후 작성 · 사진은 폰 안에서만 분석', pad, H - 24);
   return cv;
 }
 function recFileName(){ const d = new Date(); return '복구현장위험성평가_' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '_' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + '.jpg'; }
@@ -3254,12 +3332,22 @@ async function recSave(){
   toast('이미지 저장 완료');
 }
 async function recShare(){
+  // 카카오톡 등은 '사진+글' 동시 공유를 거부 → 글은 클립보드에 복사, 공유는 사진만
   const t = recText();
+  let copied = false;
+  try { await navigator.clipboard.writeText(t); copied = true; } catch(e){}
   try {
-    const b = await recBlob(); const f = new File([b], recFileName(), {type:'image/jpeg'});
-    if (navigator.canShare && navigator.canShare({files:[f]})){ await navigator.share({files:[f], text:t}); return; }
+    const b = await recBlob();
+    const d = new Date(), stamp = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '_' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0');
+    const f = new File([b], 'risk_' + stamp + '.jpg', {type:'image/jpeg'});
+    if (navigator.canShare && navigator.canShare({files:[f]})){
+      toast(copied ? '평가 내용이 복사됐습니다 – 사진 전송 후 대화창에 붙여넣기 하세요' : '사진 전송 후 [텍스트 복사]로 내용을 붙여넣으세요', 4500);
+      await navigator.share({files:[f]});
+      return;
+    }
   } catch(e){ if (e && e.name === 'AbortError') return; }
-  await recCopy(); recSave();
+  if (!copied) await recCopy();
+  recSave();
 }
 function recInit(){
   if (!$('recPanel')) return;

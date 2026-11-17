@@ -1,7 +1,7 @@
 {
-  "name": "현장 위험성 평가표(전송) AI",
-  "short_name": "위험성평가AI",
-  "description": "현장 360° 스캔으로 위험요인을 자동 체크하는 위험성 평가표 (폰 내부 분석)",
+  "name": "전안나 · 전송 안전 나눔",
+  "short_name": "전안나",
+  "description": "전송 안전 나눔 – 우리 팀 안전 도우미 AI 전안나와 함께 쓰는 현장 위험성 평가",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

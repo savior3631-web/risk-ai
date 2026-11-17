@@ -1,5 +1,5 @@
 // 오프라인/저속망 대비 캐시 (영상·프레임은 다루지 않음)
-const V = 'risk-ai-v23-1';
+const V = 'risk-ai-v25-1';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
