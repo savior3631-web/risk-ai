@@ -2173,7 +2173,7 @@ rfcRender();
     <pre id="recOut"></pre>
     <div class="rec-row">
       <button type="button" class="rec-btn" id="recCopy">📋 텍스트 복사</button>
-      <button type="button" class="rec-btn" id="recShare">📤 사진+내용 공유</button>
+      <button type="button" class="rec-btn" id="recShare">📤 카톡·Teams 공유</button>
     </div>
     <button type="button" class="rec-btn rec-wide" id="recSave">🖼 보고 이미지 저장</button>
     <canvas id="recCanvas" style="display:none"></canvas>
@@ -2550,6 +2550,7 @@ const EQX = [
   {k:'barrier', label:'방호벽(안전시설) 확인', maps:[], info:true, min:0.45},
   {k:'robot', label:'에어로봇(안전시설) 확인', maps:[], info:true, min:0.45},
   {k:'rack', label:'국사 장비랙(구내)', maps:['site_indoor'], min:0.5},
+  {k:'poleguard', label:'전주보호판(도색판) 확인', maps:[], info:true, min:0.3},
   {k:'boom', label:'크레인·고소작업차(붐 장비)', maps:['m_truck_lift','risk_machine_hit','risk_fall']},
   {k:'dump', label:'덤프트럭', maps:['m_dump','risk_machine_hit']},
   {k:'forklift', label:'지게차', maps:['m_forklift','risk_machine_hit']},
@@ -2568,7 +2569,9 @@ const EQX = [
   {k:'helmet', label:'안전모 착용 확인', maps:[], info:true},
   {k:'vest', label:'안전조끼 착용 확인', maps:[], info:true},
   {v:'car'}, {v:'truck'}, {v:'bus'}, {v:'motorcycle'}, {v:'person'},
-  {k:'extinguisher', label:'소화기 비치 확인', maps:[], info:true, min:0.4}
+  {k:'extinguisher', label:'소화기 비치 확인', maps:[], info:true, min:0.4},
+  {k:'flag', label:'신호수 깃발(신호수 배치) 확인', maps:[], info:true, min:0.45},
+  {k:'baton', label:'경광봉(신호수) 확인', maps:[], info:true, min:0.34}
 ];
 /* 자체 학습모델용 클래스표 (2차 학습 후 사용 예정) */
 const EQ_TRAINED = [
@@ -2702,7 +2705,10 @@ function eqRun(v, vw, vh, Z, D){
       res(boxes.map(b => {
         const e = D.list[b.c] || {};
         return {class: e.v || ('eq_' + (e.k || e.a)), score: b.s, min: e.min || 0, bbox: [b.x / sc, b.y / sc, b.w / sc, b.h / sc]};
-      }).filter(p => p.class !== 'eq_undefined' && p.score >= p.min));
+      }).filter(p => p.class !== 'eq_undefined' && p.score >= p.min).map(p => {
+        if (p.class === 'eq_sign' && p.bbox[3] / Math.max(1, p.bbox[2]) > 1.7) return Object.assign({}, p, {class:'eq_poleguard'});
+        return p;
+      }).filter((p, _, arr) => !(p.class === 'eq_sign' && arr.some(q => q.class === 'eq_poleguard' && Math.abs((q.bbox[0] + q.bbox[2] / 2) - (p.bbox[0] + p.bbox[2] / 2)) < p.bbox[2] * 0.6))));
     });
     D.w.postMessage({type:'frame', id, size:Z, buf:img.data.buffer, minScore:CFG.eqMinScore}, [img.data.buffer]);
   });
@@ -3022,7 +3028,7 @@ function draw(now){
   if (!S.sensor && now - S.t0 > 2500 && !S._noSensorMsg){ S._noSensorMsg = true; $('aiHint').innerHTML = '방향센서 미지원 – <b>' + CFG.fallbackSec + '초 동안 천천히</b> 한 바퀴 돌아주세요'; }
 }
 const KO = {eq_excavator:'포크레인', eq_crane:'크레인', eq_dump:'덤프', eq_forklift:'지게차', eq_bucket:'고소작업차', eq_roller:'롤러',
-  eq_loader:'로더', eq_pump:'펌프카', eq_ladder:'사다리', eq_cones:'컬러콘', eq_extinguisher:'소화기', eq_manhole:'맨홀', eq_machine:'건설장비', eq_scissor:'고소작업대', eq_debris:'잔해', eq_sign:'입간판', eq_splicer:'융착기', eq_crane:'크레인', eq_cones:'컬러콘', eq_bucket:'고소작업차', eq_closure:'접속함체', eq_tower:'철탑', eq_rru:'중계기', eq_pole:'전주', eq_barrier:'방호벽', eq_robot:'에어로봇', eq_rack:'장비랙', eq_boom:'붐장비', eq_helmet:'안전모', eq_vest:'안전조끼', car:'차량', truck:'트럭', bus:'버스', motorcycle:'오토바이', bicycle:'자전거', person:'사람', 'traffic light':'신호등', 'stop sign':'정지표지', 'fire hydrant':'소화전'};
+  eq_loader:'로더', eq_pump:'펌프카', eq_ladder:'사다리', eq_cones:'컬러콘', eq_extinguisher:'소화기', eq_poleguard:'전주보호판', eq_flag:'신호깃발', eq_baton:'경광봉', eq_manhole:'맨홀', eq_machine:'건설장비', eq_scissor:'고소작업대', eq_debris:'잔해', eq_sign:'입간판', eq_splicer:'융착기', eq_crane:'크레인', eq_cones:'컬러콘', eq_bucket:'고소작업차', eq_closure:'접속함체', eq_tower:'철탑', eq_rru:'중계기', eq_pole:'전주', eq_barrier:'방호벽', eq_robot:'에어로봇', eq_rack:'장비랙', eq_boom:'붐장비', eq_helmet:'안전모', eq_vest:'안전조끼', car:'차량', truck:'트럭', bus:'버스', motorcycle:'오토바이', bicycle:'자전거', person:'사람', 'traffic light':'신호등', 'stop sign':'정지표지', 'fire hydrant':'소화전'};
 function drawRing(cov){
   const svg = $('aiRing'); if (!svg) return;
   if (!svg._built){
@@ -3504,6 +3510,7 @@ function recDraft(a){
   if (a.eq.rack) add(fix, '운용 장비 오조작 주의 및 작업구역 표시');
   const done = [];
   if (a.eq.cones) done.push('컬러콘'); if (a.eq.barrier) done.push('방호벽'); if (a.eq.robot) done.push('에어로봇'); if (a.eq.sign && !(a.obj.manhole || a.eq.manhole)) done.push('입간판'); if (a.eq.extinguisher) done.push('소화기');
+  if ((a.eq.flag || a.eq.baton) && !fix.some(t => t.includes('신호수'))) add(fix, '신호수 배치(신호깃발·경광봉) 확인');
   if (done.length) add(fix, done.join('·') + ' 설치 완료');
   if (a.eq.helmet || a.eq.vest) add(fix, '작업자 안전모·안전조끼 착용 확인');
   if (!env.length) add(env, '특이 위험요인 없음');
