@@ -2790,7 +2790,14 @@ function eqClean(L){
   const big = L.filter(p => /^(car|truck|bus|eq_bucket|eq_boom|eq_dump|eq_loader|eq_machine|eq_excavator|eq_crane)$/.test(p.class) && p.score >= 0.3);
   const cones = L.filter(p => p.class === 'eq_cones');
   const lift = L.filter(p => p.class === 'eq_bucket' || p.class === 'eq_boom');
+  const veh = L.filter(p => /^(car|truck|bus|eq_bucket|eq_boom|eq_dump)$/.test(p.class) && p.score >= 0.5);
   return L.filter(p => {
+    if (p.class === 'truck' && p.score < 0.55) return false;              // 간판·현수막을 트럭으로 보는 경우
+    if (p.class === 'bus' && p.score < 0.55) return false;
+    if (p.class === 'eq_manhole'){
+      if (veh.some(q => q !== p && ov(p.bbox, q.bbox) > 0.7)) return false;  // 차량·간판 영역 안의 둥근 물체(음식 사진 등)
+      if (p.bbox[2] / Math.max(1, p.bbox[3]) < 1.15) return false;          // 바닥 맨홀은 비스듬히 보여 가로로 김
+    }
     if (p.class === 'eq_poleguard'){
       if (big.some(q => ov(p.bbox, q.bbox) > 0.5)) return false;          // 차량에 붙은 줄무늬 스티커
       if (cones.some(q => ov(p.bbox, q.bbox) > 0.4)) return false;        // 컬러콘
