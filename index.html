@@ -185,6 +185,13 @@ body.tab-rec #recPanel{display:block}
 .rec-chips span{font-size:12px;background:#ede7f6;color:#4a148c;border-radius:14px;padding:5px 9px;cursor:pointer}
 #recOut{white-space:pre-wrap;background:#f5f5f5;border-radius:8px;padding:10px;font-size:13.5px;line-height:1.55;font-family:inherit;margin:8px 0}
 
+#aiZoom{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:16px}
+#aiZoom .az-b{background:#fff;border-radius:16px;padding:14px;max-width:560px;width:100%;text-align:center}
+#aiZoom .az-b b{display:block;font-size:17px;margin-bottom:8px}
+#aiZoom img{width:100%;border-radius:10px}
+#aiZoom p{margin:8px 0 4px;color:#444;font-size:14px}#aiZoom small{color:#999}
+.ai-f img.ai-zoom{cursor:zoom-in;outline:2px solid #FF7A00;outline-offset:-2px}
+
 /* ===== 유안나 앱 셸 (SK Orange) ===== */
 :root{--jn:#FF7A00;--jn-d:#D96500;--jn-l:#FFF1E5;--jn-ink:#1E2833;--jn-sub:#6B7480;--jn-bg:#F6F4F1;--jn-card:#fff}
 body{padding-bottom:84px!important;background:var(--jn-bg)}
@@ -2280,7 +2287,7 @@ rfcRender();
   <button type="button" class="jn-tbm" id="jnGoTbm"><span>✅</span><b>TBM 체크리스트</b><small>읽어주고 완료 체크 → Teams 사진 등록</small><i>›</i></button>
   <div class="jn-sec"><b>최근 기록</b><button type="button" class="jn-link" id="jnMore">전체 보기 ›</button></div>
   <div id="jnRecent"></div>
-  <div class="jn-foot">🔒 사진·영상은 폰 밖으로 나가지 않아요 · <b>V31</b></div>
+  <div class="jn-foot">🔒 사진·영상은 폰 밖으로 나가지 않아요 · <b>V32</b></div>
 </div>
 
 <div id="jnLog">
@@ -2997,7 +3004,7 @@ function captureKeyframe(now){
   if (!take) return;
   S.lastKf = now;
   const id = S.gen * 1000 + (S.kfId++);
-  const tw = 200, thh = Math.round(200 * vh / vw); thCv.width = tw; thCv.height = thh;
+  const tw = 480, thh = Math.round(480 * vh / vw); thCv.width = tw; thCv.height = thh;
   thCtx.drawImage(v, 0, 0, tw, thh);
   const kf = {id, thumb: thCv.toDataURL('image/jpeg', 0.6), heading:S.heading};
   S.kf.push(kf);
@@ -3106,9 +3113,9 @@ function handleDet(preds, t, vw){
   S.tracks = S.tracks.filter(tr => t - tr.last < 8000 || tr.speeds.length);
 }
 function snapThumb(box){
-  try { const v = $('aiVideo'), vw = v.videoWidth, vh = v.videoHeight; const tw = 240, th = Math.round(240 * vh / vw), k = tw / vw;
+  try { const v = $('aiVideo'), vw = v.videoWidth, vh = v.videoHeight; const tw = 480, th = Math.round(480 * vh / vw), k = tw / vw;
     thCv.width = tw; thCv.height = th; thCtx.drawImage(v, 0, 0, tw, th);
-    if (box){ thCtx.strokeStyle = '#ff3b30'; thCtx.lineWidth = 3; thCtx.shadowColor = '#fff'; thCtx.shadowBlur = 2; thCtx.strokeRect(box[0] * k, box[1] * k, box[2] * k, box[3] * k); }
+    if (box){ thCtx.strokeStyle = '#ff3b30'; thCtx.lineWidth = 5; thCtx.shadowColor = '#fff'; thCtx.shadowBlur = 2; thCtx.strokeRect(box[0] * k, box[1] * k, box[2] * k, box[3] * k); }
     return thCv.toDataURL('image/jpeg', 0.65); } catch(e){ return ''; }
 }
 function trafficSummary(){
@@ -3237,6 +3244,14 @@ function buildFindings(live){
     out.push({key:'o_' + o.k, label:o.label, conf:st.maxP, level, thumb:kfThumb(st.best), maps:o.maps, danger:o.danger, todo:o.todo,
       info:!!o.info, why});
   });
+  if (S.sc.indoor.n / nF >= 0.6){   // 누가 봐도 실내: 옥외 전용 항목은 빼거나 확인필요로
+    for (let i = out.length - 1; i >= 0; i--){
+      const k = out[i].key;
+      if (k === 'o_cabinet' || k === 's_rooftop' || k === 's_road_edge' || k === 's_road_center') out.splice(i, 1);
+      else if ((k === 'o_transformer' || k === 'o_power' || k === 'o_wires') && !(S.ob[k.slice(2)] && S.ob[k.slice(2)].hits >= 3 && S.ob[k.slice(2)].maxP >= 0.93)) out.splice(i, 1);
+      else if (k === 'o_telecom') out[i].label = '통신선/광케이블 (참고)';
+    }
+  }
   // 차량(실시간 감지)
   const tf = trafficSummary();
   if (tf.seen >= 1){
@@ -3299,7 +3314,7 @@ function showFindings(){
     const mp = f.maps.length ? '→ ' + f.maps.map(labelOf).join(' · ') : (f.danger ? '→ 추가 위험요인: ' + f.danger : '참고 정보');
     const tag = f.info ? '<span class="ai-tag i">' + (f.key === 'o_cones' ? '안전시설' : '참고') + '</span>' : f.level === 'high' ? '<span class="ai-tag h">감지</span>' : '<span class="ai-tag l">확인필요</span>';
     return '<label class="ai-f' + (f.level === 'low' ? ' low' : '') + '"><input type="checkbox" data-i="' + i + '"' + (f.level === 'high' && !f.info ? ' checked' : '') + '>' +
-      (f.thumb ? '<img src="' + f.thumb + '" alt="">' : '<div class="ai-ph">' + (f.key === 'traffic' ? '🚗' : f.key === 'leak' ? '⚡' : f.key === 'people' ? '🚶' : '⚠') + '</div>') +
+      (f.thumb ? '<img class="ai-zoom" data-z="' + i + '" src="' + f.thumb + '" alt="" title="눌러서 크게 보기">' : '<div class="ai-ph">' + (f.key === 'traffic' ? '🚗' : f.key === 'leak' ? '⚡' : f.key === 'people' ? '🚶' : '⚠') + '</div>') +
       '<div class="ai-ft"><div class="ai-fl">' + esc(f.label) + tag + '</div><div class="ai-fm">' + esc(mp) + '<br><span style="color:#999">' + esc(f.why || '') + '</span></div>' +
       '<div class="ai-conf"><i style="width:' + Math.round(f.conf * 100) + '%"></i></div></div></label>';
   }).join('');
@@ -3307,6 +3322,12 @@ function showFindings(){
     '<label>추가 위험요인<input type="text" id="aiTxtDanger"></label><label>추가 안전대책<input type="text" id="aiTxtTodo"></label></div>';
   box.innerHTML = html;
   box.querySelectorAll('input[type=checkbox]').forEach(cb => cb.addEventListener('change', fillTexts));
+  box.querySelectorAll('img.ai-zoom').forEach(im => im.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation(); const f = lastFindings[+im.dataset.z];
+    let z = $('aiZoom'); if (!z){ z = document.createElement('div'); z.id = 'aiZoom'; document.body.appendChild(z); z.addEventListener('click', () => z.style.display = 'none'); }
+    z.innerHTML = '<div class="az-b"><b>' + esc(f.label) + '</b><img src="' + f.thumb + '" alt=""><p>' + esc(f.why || '') + (/^o_|traffic/.test(f.key) && !/^o_(power|transformer|wires|telecom|cabinet|trench|wet|ice)$/.test(f.key) ? '<br>🟥 빨간 네모가 안나가 찾은 위치예요' : '<br>이 장면 전체를 보고 판단했어요') + '</p><small>화면을 누르면 닫혀요</small></div>';
+    z.style.display = 'flex';
+  }));
   fillTexts();
   $('aiApply').disabled = false;
 }
