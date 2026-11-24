@@ -1263,7 +1263,7 @@ function updateWeatherAlert(feel, wind, rain){
   <circle cx="60" cy="34" r="8" fill="#fff"/>
   <path d="M60 28v12M54 34h12" stroke="#FF7A00" stroke-width="3.2" stroke-linecap="round"/>
 </svg></span> 유안나 <span style="font-size:14px;color:#6a1b9a">유선 안전 나눔</span></h2>
-<div style="font-size:12.5px;color:#666;margin:0 0 8px">현장 위험성 평가표(전송) V34 · 우리 팀 안전 도우미 AI</div>
+<div style="font-size:12.5px;color:#666;margin:0 0 8px">현장 위험성 평가표(전송) V35 · 우리 팀 안전 도우미 AI</div>
 <div id="aiTabs"><button type="button" class="on" data-tab="form">📋 위험성 평가표</button><button type="button" data-tab="rec">📸 복구현장 위험성평가</button></div>
 <div class="form">
 
@@ -2288,7 +2288,7 @@ rfcRender();
   <button type="button" class="jn-tbm" id="jnGoTbm"><span>✅</span><b>TBM 체크리스트</b><small>읽어주고 완료 체크 → Teams 사진 등록</small><i>›</i></button>
   <div class="jn-sec"><b>최근 기록</b><button type="button" class="jn-link" id="jnMore">전체 보기 ›</button></div>
   <div id="jnRecent"></div>
-  <div class="jn-foot">🔒 사진·영상은 폰 밖으로 나가지 않아요 · <b>V34</b></div>
+  <div class="jn-foot">🔒 사진·영상은 폰 밖으로 나가지 않아요 · <b>V35</b></div>
 </div>
 
 <div id="jnLog">
@@ -2383,7 +2383,7 @@ rfcRender();
     <b>📚 안나가 배운 것 / 배우는 중</b>
     <div class="jg-know"><span class="ok">✅ 잘해요</span>사람·차량, 컬러콘, 입간판, 에어로봇, 신호깃발, 맨홀, 포크레인(굴착기), 크레인, 전주보호판, 철탑·중계기, 장비함, 안전모, 고소작업차, 고임목, 송풍기·배풍기, 차량 접근금지 표지</div>
     <div class="jg-know"><span class="mid">🟡 아직 헷갈려요</span>소형 굴착기(미니 포크레인), 고소작업차↔트럭(일부), 아웃트리거·받침대(있다/없다만), 가스측정기↔풍속계, 입간판↔비슷한 노란 구조물</div>
-    <div class="jg-know"><span class="no">📖 공부할 거예요</span>덤프·로더 등 다른 중장비, 아웃트리거 신형/구형 구분, 경광봉, 출입금지 라인, 풍속계, 절연장갑, 변압기·저압선</div>
+    <div class="jg-know"><span class="no">📖 공부할 거예요</span>안전화, 픽업형 고소차, 덤프·로더 등 다른 중장비, 아웃트리거 신형/구형 구분, 경광봉, 출입금지 라인, 풍속계, 절연장갑, 변압기·저압선</div>
     <p class="jg-tip">💡 요즘 특히 필요한 사진: <b>소형 굴착기</b>, <b>아웃트리거 신형(노란 원판)·구형(쇠 발판)</b> 가까이, <b>풍속계·가스측정기</b>, <b>절연장갑</b>, <b>경광봉·출입금지 라인</b></p>
   </div>
 </div>
@@ -2809,6 +2809,8 @@ function eqClean(L){
   const bn = L.filter(p => p.class === 'eq_tbanner' && p.score >= 0.6 && big.some(q => /^(car|truck|eq_bucket|eq_boom)$/.test(q.class) && ov(p.bbox, q.bbox) > 0.6));
   return L.filter(p => {
     if (p.class === 'eq_tbanner') return bn.includes(p);
+    if (p.class === 'person' && L.some(q => q.class === 'eq_robot' && ov(p.bbox, q.bbox) > 0.5)) return false;   // 에어로봇을 사람으로
+    if (p.class === 'eq_machine' && (p.score < 0.65 || L.some(q => /^(car|truck|eq_bucket|eq_boom|eq_robot)$/.test(q.class) && ov(p.bbox, q.bbox) > 0.4))) return false;   // 차량+장비 겹침을 건설장비로
     if (p.class === 'eq_excavator' || p.class === 'eq_bucket' || p.class === 'eq_boom'){   // 포크레인↔고소차·붐: 겹치면 점수 높은 쪽만
       const o = p.class === 'eq_excavator' ? /^eq_(bucket|boom)$/ : /^eq_excavator$/;
       if (L.some(q => o.test(q.class) && q.score > p.score && (ov(p.bbox, q.bbox) > 0.3 || ov(q.bbox, p.bbox) > 0.3))) return false;
