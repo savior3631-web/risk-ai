@@ -2287,7 +2287,7 @@ rfcRender();
   <button type="button" class="jn-tbm" id="jnGoTbm"><span>✅</span><b>TBM 체크리스트</b><small>읽어주고 완료 체크 → Teams 사진 등록</small><i>›</i></button>
   <div class="jn-sec"><b>최근 기록</b><button type="button" class="jn-link" id="jnMore">전체 보기 ›</button></div>
   <div id="jnRecent"></div>
-  <div class="jn-foot">🔒 사진·영상은 폰 밖으로 나가지 않아요 · <b>V32</b></div>
+  <div class="jn-foot">🔒 사진·영상은 폰 밖으로 나가지 않아요 · <b>V33</b></div>
 </div>
 
 <div id="jnLog">
@@ -2381,7 +2381,7 @@ rfcRender();
   <div class="jg-card">
     <b>📚 안나가 배운 것 / 배우는 중</b>
     <div class="jg-know"><span class="ok">✅ 잘해요</span>사람·차량, 컬러콘, 입간판, 에어로봇, 신호깃발, 맨홀, 크레인, 전주보호판, 철탑·중계기, 장비함, 안전모, 고소작업차, 고임목, 송풍기·배풍기, 차량 접근금지 표지</div>
-    <div class="jg-know"><span class="mid">🟡 아직 헷갈려요</span>포크레인↔로더, 아웃트리거·받침대(있다/없다만), 가스측정기↔풍속계, 입간판↔비슷한 노란 구조물</div>
+    <div class="jg-know"><span class="mid">🟡 아직 헷갈려요</span>아웃트리거·받침대(있다/없다만), 가스측정기↔풍속계, 입간판↔비슷한 노란 구조물</div>
     <div class="jg-know"><span class="no">📖 공부할 거예요</span>아웃트리거 신형/구형 구분, 경광봉, 출입금지 라인, 풍속계, 절연장갑, 변압기·저압선</div>
     <p class="jg-tip">💡 요즘 특히 필요한 사진: <b>아웃트리거 신형(노란 원판)·구형(쇠 발판)</b> 가까이, <b>풍속계·가스측정기</b>, <b>절연장갑</b>, <b>경광봉·출입금지 라인</b></p>
   </div>
@@ -2805,9 +2805,13 @@ function eqClean(L){
   const cones = L.filter(p => p.class === 'eq_cones');
   const lift = L.filter(p => p.class === 'eq_bucket' || p.class === 'eq_boom');
   const veh = L.filter(p => /^(car|truck|bus|eq_bucket|eq_boom|eq_dump)$/.test(p.class) && p.score >= 0.5);
-  const bn = L.filter(p => p.class === 'eq_tbanner' && p.score >= 0.6 && big.some(q => ov(p.bbox, q.bbox) > 0.6));
+  const bn = L.filter(p => p.class === 'eq_tbanner' && p.score >= 0.6 && big.some(q => /^(car|truck|eq_bucket|eq_boom)$/.test(q.class) && ov(p.bbox, q.bbox) > 0.6));
   return L.filter(p => {
-    if (p.class === 'eq_tbanner') return bn.includes(p);                 // 차량에 붙은 경우만
+    if (p.class === 'eq_tbanner') return bn.includes(p);
+    if (p.class === 'eq_excavator' || p.class === 'eq_bucket' || p.class === 'eq_boom'){   // 포크레인↔고소차·붐: 겹치면 점수 높은 쪽만
+      const o = p.class === 'eq_excavator' ? /^eq_(bucket|boom)$/ : /^eq_excavator$/;
+      if (L.some(q => o.test(q.class) && q.score > p.score && (ov(p.bbox, q.bbox) > 0.3 || ov(q.bbox, p.bbox) > 0.3))) return false;
+    }                 // 차량에 붙은 경우만
     if ((p.class === 'eq_sign' || p.class === 'eq_poleguard') && bn.some(q => ov(p.bbox, q.bbox) > 0.4)) return false;
     if (p.class === 'truck' && p.score < 0.55) return false;              // 간판·현수막을 트럭으로 보는 경우
     if (p.class === 'bus' && p.score < 0.55) return false;
