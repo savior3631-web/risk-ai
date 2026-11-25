@@ -1263,7 +1263,7 @@ function updateWeatherAlert(feel, wind, rain){
   <circle cx="60" cy="34" r="8" fill="#fff"/>
   <path d="M60 28v12M54 34h12" stroke="#FF7A00" stroke-width="3.2" stroke-linecap="round"/>
 </svg></span> 유안나 <span style="font-size:14px;color:#6a1b9a">유선 안전 나눔</span></h2>
-<div style="font-size:12.5px;color:#666;margin:0 0 8px">현장 위험성 평가표(전송) V35 · 우리 팀 안전 도우미 AI</div>
+<div style="font-size:12.5px;color:#666;margin:0 0 8px">현장 위험성 평가표(전송) V36 · 우리 팀 안전 도우미 AI</div>
 <div id="aiTabs"><button type="button" class="on" data-tab="form">📋 위험성 평가표</button><button type="button" data-tab="rec">📸 복구현장 위험성평가</button></div>
 <div class="form">
 
@@ -2288,7 +2288,7 @@ rfcRender();
   <button type="button" class="jn-tbm" id="jnGoTbm"><span>✅</span><b>TBM 체크리스트</b><small>읽어주고 완료 체크 → Teams 사진 등록</small><i>›</i></button>
   <div class="jn-sec"><b>최근 기록</b><button type="button" class="jn-link" id="jnMore">전체 보기 ›</button></div>
   <div id="jnRecent"></div>
-  <div class="jn-foot">🔒 사진·영상은 폰 밖으로 나가지 않아요 · <b>V35</b></div>
+  <div class="jn-foot">🔒 사진·영상은 폰 밖으로 나가지 않아요 · <b>V36</b></div>
 </div>
 
 <div id="jnLog">
@@ -2381,10 +2381,10 @@ rfcRender();
 
   <div class="jg-card">
     <b>📚 안나가 배운 것 / 배우는 중</b>
-    <div class="jg-know"><span class="ok">✅ 잘해요</span>사람·차량, 컬러콘, 입간판, 에어로봇, 신호깃발, 맨홀, 포크레인(굴착기), 크레인, 전주보호판, 철탑·중계기, 장비함, 안전모, 고소작업차, 고임목, 송풍기·배풍기, 차량 접근금지 표지</div>
-    <div class="jg-know"><span class="mid">🟡 아직 헷갈려요</span>소형 굴착기(미니 포크레인), 고소작업차↔트럭(일부), 아웃트리거·받침대(있다/없다만), 가스측정기↔풍속계, 입간판↔비슷한 노란 구조물</div>
-    <div class="jg-know"><span class="no">📖 공부할 거예요</span>안전화, 픽업형 고소차, 덤프·로더 등 다른 중장비, 아웃트리거 신형/구형 구분, 경광봉, 출입금지 라인, 풍속계, 절연장갑, 변압기·저압선</div>
-    <p class="jg-tip">💡 요즘 특히 필요한 사진: <b>소형 굴착기</b>, <b>아웃트리거 신형(노란 원판)·구형(쇠 발판)</b> 가까이, <b>풍속계·가스측정기</b>, <b>절연장갑</b>, <b>경광봉·출입금지 라인</b></p>
+    <div class="jg-know"><span class="ok">✅ 잘해요</span>사람, 안전모, 안전조끼, 컬러콘, 입간판, 고소작업차, 포크레인(굴착기), 차량 부착 안전표지</div>
+    <div class="jg-know"><span class="mid">🟡 아직 헷갈려요</span>에어로봇, 맨홀, 아웃트리거·받침대(있다/없다만), 고임목, 소형 굴착기, 신호깃발</div>
+    <div class="jg-know"><span class="no">📖 공부할 거예요</span>송풍기·배풍기, 가스측정기, 안전화, 경광봉, 픽업형 고소차, 아웃트리거 신형/구형 구분, 풍속계, 절연장갑, 변압기·저압선</div>
+    <p class="jg-tip">💡 요즘 특히 필요한 사진: <b>맨홀 송풍기·가스측정</b> 장면, <b>고임목·아웃트리거</b> 가까이, <b>경광봉 든 신호수</b>, <b>안전화</b></p>
   </div>
 </div>
 
@@ -2513,16 +2513,17 @@ async function detect(m){
   const out = await sess.run({ [inName]: new ort.Tensor('float32', f, [1, 3, Z, Z]) });
   const o = out[sess.outputNames[0]], d = o.data, P = o.dims[2];   // [1, 4+N(+32), P]
   const cand = [];
-  for (let i = 0; i < P; i++){
-    let bc = 0, bs = 0;
-    for (let c = 0; c < N; c++){ const s = d[(4 + c) * P + i]; if (s > bs){ bs = s; bc = c; } }
-    if (bs < m.minScore) continue;
+  for (let i = 0; i < P; i++){   // 한 위치에서 여러 이름 허용(최대 3개) → 고소차가 '트럭'에 묻혀 사라지지 않게
+    let top = [];
+    for (let c = 0; c < N; c++){ const s = d[(4 + c) * P + i]; if (s >= m.minScore){ top.push([s, c]); } }
+    if (!top.length) continue;
+    top.sort((a, b) => b[0] - a[0]); top = top.slice(0, 3);
     const cx = d[i], cy = d[P + i], w = d[2 * P + i], h = d[3 * P + i];
-    cand.push({ c: bc, s: bs, x: cx - w / 2, y: cy - h / 2, w, h });
+    for (const [s, c] of top) cand.push({ c, s, x: cx - w / 2, y: cy - h / 2, w, h });
   }
   cand.sort((a, b) => b.s - a.s);
   const keep = [];
-  for (const b of cand){ if (keep.length >= 40) break; if (!keep.some(k => k.c === b.c && iou(k, b) > 0.5)) keep.push(b); }
+  for (const b of cand){ if (keep.length >= 80) break; if (!keep.some(k => k.c === b.c && iou(k, b) > 0.5)) keep.push(b); }
   postMessage({ type: 'det', id: m.id, boxes: keep });
 }
 
@@ -2558,7 +2559,7 @@ const CFG = {
   hfHost: null,         // null = huggingface.co
   wasmPaths: null,      // null = jsdelivr
   clipModel: 'Xenova/clip-vit-base-patch32',
-  promptVer: 'p5',
+  promptVer: 'p6',
   fallbackSec: 20,      // 방향센서 없을 때 스캔 시간
   maxKeyframes: 40,
   detIntervalMs: 120,
@@ -2615,7 +2616,7 @@ const OBJECTS = [
   {k:'loader', label:'로더', maps:['m_loader','risk_machine_hit'], p:['a photo of a wheel loader']},
   {k:'pump', label:'펌프카', maps:['m_pump','risk_machine_hit'], p:['a photo of a concrete pump truck']},
   {k:'trench', label:'굴착부/토사 적치', maps:['site_pipe','risk_bury'],
-   p:['a photo of a trench dug in the road','a photo of a pile of soil next to an excavation']},
+   p:['a photo of a trench dug in the road','a photo of a pile of soil next to an excavation','a photo of a worker in a narrow trench with exposed cables','a photo of an excavated pit with soil walls']},
   {k:'wet', label:'노면 물기/웅덩이', maps:['risk_fall_over'], danger:'노면 물기', todo:'미끄럼주의·물기제거',
    p:['a photo of a wet road with puddles','a photo of a rainy street']},
   {k:'ice', label:'결빙/적설', maps:['risk_fall_over'], danger:'결빙 노면', todo:'아이젠·제설',
@@ -2647,11 +2648,11 @@ const EQX = [
   {k:'rru', label:'옥상 중계기(RRU)', maps:['site_roof','risk_fall'], min:0.55},
   {k:'pole', label:'전주', maps:[], info:true, min:0.4},
   {k:'barrier', label:'방호벽(안전시설) 확인', maps:[], info:true, min:0.45},
-  {k:'robot', label:'에어로봇(안전시설) 확인', maps:[], info:true, min:0.55},
+  {k:'robot', label:'에어로봇(안전시설) 확인', maps:[], info:true, min:0.75},
   {k:'rack', label:'통신 장비함/랙', maps:[], info:true, min:0.5},
-  {k:'poleguard', label:'전주보호판(도색판) 확인', maps:[], info:true, min:0.3},
-  {k:'outrigger', label:'아웃트리거 전개 확인', maps:[], info:true, min:0.3},
-  {k:'chock', label:'고임목 설치 확인', maps:[], info:true, min:0.45},
+  {k:'poleguard', label:'전주보호판(도색판) 확인', maps:[], info:true, min:0.9},
+  {k:'outrigger', label:'아웃트리거 전개 확인', maps:[], info:true, min:0.25},
+  {k:'chock', label:'고임목 설치 확인', maps:[], info:true, min:0.4},
   {k:'blower', label:'송풍기(환기) 확인', maps:[], info:true, min:0.35},
   {k:'gasdet', label:'가스측정기 확인', maps:[], info:true, min:0.55},
   {a:'sign'},
@@ -2659,13 +2660,13 @@ const EQX = [
   {k:'dump', label:'덤프트럭', maps:['m_dump','risk_machine_hit'], min:0.55},
   {k:'forklift', label:'지게차', maps:['m_forklift','risk_machine_hit']},
   {k:'roller', label:'롤러', maps:['m_roller','risk_machine_hit']},
-  {k:'loader', label:'건설장비(로더·소형굴착기)', maps:['risk_machine_hit'], min:0.45},
+  {k:'loader', label:'건설장비(로더·소형굴착기)', maps:['risk_machine_hit'], min:0.6},
   {a:'loader'},
   {k:'machine', label:'건설장비(굴착기 등)', maps:['risk_machine_hit'], min:0.55},
   {a:'boom'},
   {k:'ladder', label:'사다리', maps:['risk_ladder','risk_fall']},
   {k:'cones', label:'컬러콘(안전시설) 확인', maps:[], info:true, min:0.45},
-  {k:'manhole', label:'맨홀', maps:['site_manhole','risk_suffocate']},
+  {k:'manhole', label:'맨홀', maps:['site_manhole','risk_suffocate'], min:0.45},
   {k:'scissor', label:'시저형 고소작업대', maps:['m_scissor','risk_fall'], min:0.6},
   {k:'debris', label:'철거자재/잔해 적치', maps:['risk_fall_over'], danger:'자재 적치·통로 협소', todo:'적치물 정리·통로 확보'},
   {k:'sign', label:'안전 입간판(위험표지) 확인', maps:[], info:true, min:0.55},
@@ -2673,11 +2674,11 @@ const EQX = [
   {k:'helmet', label:'안전모 착용 확인', maps:[], info:true},
   {k:'vest', label:'안전조끼 착용 확인', maps:[], info:true},
   {v:'car'}, {v:'truck'}, {v:'bus'}, {v:'motorcycle'}, {v:'person'},
-  {k:'extinguisher', label:'소화기 비치 확인', maps:[], info:true, min:0.4},
-  {k:'flag', label:'신호수 깃발(신호수 배치) 확인', maps:[], info:true, min:0.45},
+  {k:'extinguisher', label:'소화기 비치 확인', maps:[], info:true, min:0.6},
+  {k:'flag', label:'신호수 깃발(신호수 배치) 확인', maps:[], info:true, min:0.65},
   {k:'baton', label:'경광봉(신호수) 확인', maps:[], info:true, min:0.99},
   {k:'opad', label:'아웃트리거 받침대 확인', maps:[], info:true, min:0.5},
-  {k:'tbanner', label:'고소차 접근금지 표지 확인', maps:[], info:true, min:0.6}
+  {k:'tbanner', label:'차량 부착 안전표지 확인', maps:[], info:true, min:0.6}
 ];
 /* 자체 학습모델용 클래스표 (2차 학습 후 사용 예정) */
 const EQ_TRAINED = [
@@ -2794,7 +2795,23 @@ function loadExt(){
   return extP;
 }
 // 오탐 정리: 차량 위 스티커·콘을 전주보호판으로, 고소작업차를 덤프·로더로 보는 경우 등
+// 화면 가장자리에 걸린 작은 조각 → 건설장비로 보지 않음 (흙더미·잘린 물체 오인)
+function eqEdge(L, W, H){
+  const r = L.filter(p => {
+    if (!/^eq_(loader|dump|machine|excavator|forklift|roller|boom|bucket)$/.test(p.class)) return true;
+    const [x, y, w, h] = p.bbox, m = Math.min(W, H) * 0.02;
+    const edge = x < m || y < m || x + w > W - m || y + h > H - m;
+    return !(edge && w * h < W * H * 0.08 && p.score < 0.75);
+  });
+  if (window.__gtLog) window.__gtLog.push({st:'edge', drop:L.filter(p => !r.includes(p)).map(p => [p.class, +p.score.toFixed(2)])});
+  return r;
+}
 function eqClean(L){
+  const r = eqClean0(L);
+  if (window.__gtLog) window.__gtLog.push({st:'clean', drop:L.filter(p => !r.includes(p)).map(p => [p.class, +p.score.toFixed(2)])});
+  return r;
+}
+function eqClean0(L){
   { // 아웃트리거·받침대: 고소차가 같이 보일 때만 낮은 기준 허용
     const mx = c => L.reduce((m, p) => p.class === c ? Math.max(m, p.score) : m, 0);
     const lift = Math.max(mx('eq_bucket'), mx('eq_boom')) >= 0.35, orM = mx('eq_outrigger');
@@ -2809,6 +2826,8 @@ function eqClean(L){
   const bn = L.filter(p => p.class === 'eq_tbanner' && p.score >= 0.6 && big.some(q => /^(car|truck|eq_bucket|eq_boom)$/.test(q.class) && ov(p.bbox, q.bbox) > 0.6));
   return L.filter(p => {
     if (p.class === 'eq_tbanner') return bn.includes(p);
+    if (/^eq_(boom|crane|pump|machine|loader|dump|forklift|roller)$/.test(p.class) && L.some(q => q.class === 'eq_bucket' && q.score >= 0.35 && (ov(p.bbox, q.bbox) > 0.3 || ov(q.bbox, p.bbox) > 0.3))) return false;   // 고소차의 붐·차체를 다른 장비로
+    if (/^eq_(machine|loader|dump)$/.test(p.class) && L.some(q => /^(truck|car)$/.test(q.class) && q.score > p.score && ov(p.bbox, q.bbox) > 0.5)) return false;
     if (p.class === 'person' && L.some(q => q.class === 'eq_robot' && ov(p.bbox, q.bbox) > 0.5)) return false;   // 에어로봇을 사람으로
     if (p.class === 'eq_machine' && (p.score < 0.65 || L.some(q => /^(car|truck|eq_bucket|eq_boom|eq_robot)$/.test(q.class) && ov(p.bbox, q.bbox) > 0.4))) return false;   // 차량+장비 겹침을 건설장비로
     if (p.class === 'eq_excavator' || p.class === 'eq_bucket' || p.class === 'eq_boom'){   // 포크레인↔고소차·붐: 겹치면 점수 높은 쪽만
@@ -2828,7 +2847,7 @@ function eqClean(L){
       if (p.bbox[3] / Math.max(1, p.bbox[2]) < 1.4) return false;          // 전주보호판은 세로로 김
     }
     if ((p.class === 'eq_dump' || p.class === 'eq_loader') && lift.some(q => ov(p.bbox, q.bbox) > 0.3 || ov(q.bbox, p.bbox) > 0.3)) return false;
-    if (p.class === 'eq_sign'){ const r = p.bbox[2] / Math.max(1, p.bbox[3]); if (r > 1.25 || r < 0.35) return false; }   // A형 입간판 비율
+    if (p.class === 'eq_sign'){ const r = p.bbox[2] / Math.max(1, p.bbox[3]); if (r > 1.25 || r < 0.31) return false; }   // A형 입간판 비율
     return true;
   });
 }
@@ -2847,13 +2866,13 @@ function eqRun(v, vw, vh, Z, D){
     const timer = setTimeout(() => { eqWait.delete(id); res([]); }, Z > 600 ? 25000 : 4000);
     eqWait.set(id, boxes => {
       clearTimeout(timer);
-      res(eqClean(boxes.map(b => {
+      res(eqClean(eqEdge(boxes.map(b => {
         const e = D.list[b.c] || {};
         return {class: e.v || ('eq_' + (e.k || e.a)), score: b.s, min: e.min || 0, bbox: [b.x / sc, b.y / sc, b.w / sc, b.h / sc]};
       }).filter(p => p.class !== 'eq_undefined' && p.score >= p.min).map(p => {
-        if (p.class === 'eq_sign' && p.bbox[3] / Math.max(1, p.bbox[2]) > 1.7) return Object.assign({}, p, {class:'eq_poleguard'});
+        if (p.class === 'eq_sign' && p.bbox[3] / Math.max(1, p.bbox[2]) > 3.2) return null;   // 아주 가늘고 긴 건 전주보호판 등 → 입간판 아님 (세로형 입간판 h/w 2~3은 유지)
         return p;
-      }).filter((p, _, arr) => !(p.class === 'eq_sign' && arr.some(q => q.class === 'eq_poleguard' && Math.abs((q.bbox[0] + q.bbox[2] / 2) - (p.bbox[0] + p.bbox[2] / 2)) < p.bbox[2] * 0.6)))));
+      }).filter(p => p).filter((p, _, arr) => !(p.class === 'eq_sign' && arr.some(q => q.class === 'eq_poleguard' && Math.abs((q.bbox[0] + q.bbox[2] / 2) - (p.bbox[0] + p.bbox[2] / 2)) < p.bbox[2] * 0.6))), vw, vh)));
 
     });
     D.w.postMessage({type:'frame', id, size:Z, buf:img.data.buffer, minScore:CFG.eqMinScore}, [img.data.buffer]);
@@ -3179,7 +3198,7 @@ function draw(now){
   if (!S.sensor && now - S.t0 > 2500 && !S._noSensorMsg){ S._noSensorMsg = true; $('aiHint').innerHTML = '방향센서 미지원 – <b>' + CFG.fallbackSec + '초 동안 천천히</b> 한 바퀴 돌아주세요'; }
 }
 const KO = {eq_excavator:'포크레인', eq_crane:'크레인', eq_dump:'덤프', eq_forklift:'지게차', eq_bucket:'고소작업차', eq_roller:'롤러',
-  eq_loader:'로더', eq_pump:'펌프카', eq_ladder:'사다리', eq_cones:'컬러콘', eq_extinguisher:'소화기', eq_poleguard:'전주보호판', eq_flag:'신호깃발', eq_outrigger:'아웃트리거', eq_opad:'아웃트리거 받침대', eq_tbanner:'차량 접근금지 표지', eq_chock:'고임목', eq_blower:'송풍기·배풍기', eq_gasdet:'가스측정기', eq_baton:'경광봉', eq_manhole:'맨홀', eq_machine:'건설장비', eq_scissor:'고소작업대', eq_debris:'잔해', eq_sign:'입간판', eq_splicer:'융착기', eq_crane:'크레인', eq_cones:'컬러콘', eq_bucket:'고소작업차', eq_closure:'접속함체', eq_tower:'철탑', eq_rru:'중계기', eq_pole:'전주', eq_barrier:'방호벽', eq_robot:'에어로봇', eq_rack:'장비함', eq_boom:'붐장비', eq_helmet:'안전모', eq_vest:'안전조끼', car:'차량', truck:'트럭', bus:'버스', motorcycle:'오토바이', bicycle:'자전거', person:'사람', 'traffic light':'신호등', 'stop sign':'정지표지', 'fire hydrant':'소화전'};
+  eq_loader:'로더', eq_pump:'펌프카', eq_ladder:'사다리', eq_cones:'컬러콘', eq_extinguisher:'소화기', eq_poleguard:'전주보호판', eq_flag:'신호깃발', eq_outrigger:'아웃트리거', eq_opad:'아웃트리거 받침대', eq_tbanner:'차량 부착 안전표지', eq_chock:'고임목', eq_blower:'송풍기·배풍기', eq_gasdet:'가스측정기', eq_baton:'경광봉', eq_manhole:'맨홀', eq_machine:'건설장비', eq_scissor:'고소작업대', eq_debris:'잔해', eq_sign:'입간판', eq_splicer:'융착기', eq_crane:'크레인', eq_cones:'컬러콘', eq_bucket:'고소작업차', eq_closure:'접속함체', eq_tower:'철탑', eq_rru:'중계기', eq_pole:'전주', eq_barrier:'방호벽', eq_robot:'에어로봇', eq_rack:'장비함', eq_boom:'붐장비', eq_helmet:'안전모', eq_vest:'안전조끼', car:'차량', truck:'트럭', bus:'버스', motorcycle:'오토바이', bicycle:'자전거', person:'사람', 'traffic light':'신호등', 'stop sign':'정지표지', 'fire hydrant':'소화전'};
 function drawRing(cov){
   const svg = $('aiRing'); if (!svg) return;
   if (!svg._built){
@@ -3559,7 +3578,14 @@ async function recDetectTiled(c){
   all.sort((a, b) => b.score - a.score);
   const keep = [];
   all.forEach(b => { if (!keep.some(k => k.class === b.class && iou(k.bbox, b.bbox) > 0.6)) keep.push(b); });
-  return keep;
+  // 전체·분할 결과를 합친 뒤 한 번 더: 고소차·붐과 겹치는 포크레인은 확실히 더 높을 때만 남김
+  const hasLift = keep.some(k => k.class === 'eq_bucket' && k.score >= 0.45);
+  return keep.filter(b => {
+    if (hasLift && /^eq_(boom|machine|loader|dump|crane|pump)$/.test(b.class) && b.score < 0.85) return false;   // 고소차 사진의 붐·차체 조각
+    if (b.class !== 'eq_excavator') return true;
+    const rival = keep.filter(k => (k.class === 'eq_bucket' || k.class === 'eq_boom') && k.score >= 0.5 && iou(k.bbox, b.bbox) > 0.3);
+    return !rival.length || b.score >= Math.max(...rival.map(k => k.score)) + 0.15;
+  });
 }
 function recBright(c){
   const t = document.createElement('canvas'); t.width = t.height = 32; const x = t.getContext('2d'); x.drawImage(c, 0, 0, 32, 32);
@@ -3593,7 +3619,7 @@ async function recAnalyze(){
       // ① 탐지 (고해상도)
       if (detKind === 'yoloe'){
         const preds = await recDetectTiled(p.c);
-        preds.filter(b => b.score >= (b.class.startsWith('eq_') ? 0.35 : 0.4)).forEach(b => {
+        preds.filter(b => b.score >= (b.class.startsWith('eq_') ? 0.35 : b.class === 'person' ? 0.7 : 0.4)).forEach(b => {
           p.boxes.push({cls:b.class, s:b.score, x:b.bbox[0], y:b.bbox[1], w:b.bbox[2], h:b.bbox[3]});
           if (b.class.startsWith('eq_')){ const k = b.class.slice(3); agg.eq[k] = Math.max(agg.eq[k] || 0, b.score); }
           else if (b.class === 'person') agg.person = Math.max(agg.person, 0);
@@ -3657,7 +3683,7 @@ function recDraft(a){
   if (a.obj.ice) add(env, '노면 결빙');
   if (a.obj.power || a.obj.transformer) add(env, '전력설비 근접');
   if (a.obj.manhole || a.eq.manhole) add(env, '맨홀 작업');
-  if (a.obj.trench) add(env, '굴착부 인접');
+  if (a.obj.trench) add(env, '굴착부 내 작업(굴착면 붕괴·주변 자재 전도 위험)');
   if (a.eq.ladder) add(env, '사다리 작업');
   if (a.eq.closure) add(env, '접속함체 접속작업');
   if (a.eq.tower) add(env, '기지국 철탑/안테나 인접');
@@ -3677,7 +3703,7 @@ function recDraft(a){
   if (a.eq.blower || a.eq.gasdet) add(fix, (a.eq.blower ? '송풍기(배풍기) 환기' : '') + (a.eq.blower && a.eq.gasdet ? '·' : '') + (a.eq.gasdet ? '가스측정' : '') + ' 실시 확인');
   if (a.obj.manhole || a.eq.manhole){ add(fix, '맨홀 환기 및 유해가스 측정 후 진입'); if (!a.eq.sign) add(fix, '질식위험공간 입간판 설치 및 관계자 외 출입통제'); }
   if (a.eq.sign && (a.obj.manhole || a.eq.manhole)) add(fix, '질식위험공간 입간판 설치 완료');
-  if (a.obj.trench) add(fix, '굴착부 안전펜스 설치');
+  if (a.obj.trench){ add(fix, '굴착면 붕괴 여부 확인 및 굴착부 안전펜스 설치'); add(fix, '굴착부 주변 자재·적재물 전도 방지 고정'); add(fix, '노출 케이블 보호 및 굴착부 출입 시 감시자 배치'); }
   if (a.eq.ladder || a.eq.scissor || S_.rooftop) add(fix, '고소작업 안전대 착용 및 하부 통제');
   if (a.eq.bucket || a.eq.boom){
     add(fix, '고소작업차 작업반경 내 접근금지 및 버킷 내 안전대 체결');
@@ -4018,6 +4044,7 @@ function init(){
   updateModelStatus();
   if (DEMO) $('aiPreloadBtn').style.display = 'none';
 }
+if (/[?&]gtest/.test(location.search)) window.__T = {resolvePathsOnce, loadDetector, loadExt, recLoadFile, recDetectTiled};   // 정답지 채점용(평소엔 꺼짐)
 window.AIScan = {start, finish, cancel, preload, showNow:() => { if (S && S.ended) showFindings(); }, _state:() => S, _cfg:CFG};
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
