@@ -2463,7 +2463,7 @@ rfcRender();
   <div id="aiSheet">
     <h3>🦺 안나가 살펴본 결과</h3>
     <div class="ai-stat" id="aiStat"></div>
-    <div class="ai-warn">안나는 <b>보조 도우미</b>예요. 체크된 항목을 눈으로 확인하고 맞지 않으면 해제하세요.<br>위험요인만 자동 체크되며, <b>안전대책은 작업자가 직접</b> 체크해야 합니다.</div>
+    <div class="ai-warn">안나는 <b>보조 도우미</b>예요. 체크된 항목을 눈으로 확인하고 맞지 않으면 해제하세요.<br>위험요인과 함께 <b>안전대책·추가 위험요인도 안나가 제안</b>해 채워요. <b>안나</b> 표시를 확인하고 아니면 해제하세요.</div>
     <div id="aiSheetBody"></div>
     <div class="ai-btns">
       <button type="button" class="ai-re" id="aiRescan">다시 스캔</button>
@@ -3417,10 +3417,32 @@ function fillTexts(){
   if (cones) site += ', 컬러콘 설치됨';
   const dg = [...new Set(sel.map(f => f.danger).filter(Boolean))], td = [...new Set(sel.map(f => f.todo).filter(Boolean))];
   $('aiTxtSite').value = site;
-  $('aiTxtDanger').value = dg.length ? '안나: ' + dg.slice(0, 3).join(', ') : '';
-  $('aiTxtTodo').value = td.length ? td.slice(0, 3).join(', ') : '';
+  const dr = annaDraft(sel);
+  const dgAll = [...new Set(dg.concat(dr.env))], tdAll = [...new Set(td.concat(dr.fix))];
+  $('aiTxtDanger').value = dgAll.length ? '안나: ' + dgAll.slice(0, 3).join(', ') : '특이사항 없음';
+  $('aiTxtTodo').value = tdAll.length ? tdAll.slice(0, 3).join(', ') : '특이사항 없음';
 }
 
+// 선택된 결과 → 복구현장과 같은 규칙으로 환경·해소방안 문장 만들기
+function annaDraft(sel){
+  const a = {eq:{}, veh:0, person:S ? S.maxPersons : 0, dark:false, scene:{}, obj:{}};
+  sel.forEach(f => {
+    if (f.key.startsWith('s_')) a.scene[f.key.slice(2)] = 1;
+    else if (f.key.startsWith('o_')){ const k = f.key.slice(2); a.eq[k] = f.conf || 1; a.obj[k] = 1; }
+    else if (f.key === 'traffic') a.veh = trafficSummary().seen;
+  });
+  try { const d = recDraft(a); return {env:d.env.filter(x => x.on && x.t !== '특이 위험요인 없음').map(x => x.t), fix:d.fix.filter(x => x.on && x.t !== '작업구간 안전표지 설치 및 주변 통제').map(x => x.t)}; }
+  catch(e){ return {env:[], fix:[]}; }
+}
+// 체크된 위험요인마다 사진 근거로 안전대책 제안 (안나 표시 → 아니면 해제)
+const KID_PICK = {
+  riskgrp_0: h => h.bucket || h.boom ? ['fall_hook','fall_no_move'] : h.ladder ? ['fall_ladder_guide'] : h.pole ? ['fall_pole'] : h.rooftop ? ['fall_lifeline'] : ['fall_hook'],
+  riskgrp_1: h => (h.cones || h.robot || h.sign || h.barrier ? ['traffic_facility'] : []).concat(h.flag || h.baton ? ['traffic_signal'] : []).concat(h.cones || h.robot || h.sign || h.barrier || h.flag || h.baton ? [] : ['traffic_facility']),
+  riskgrp_2: h => h.blower && !h.gasdet ? ['suffocate_vent'] : h.gasdet && !h.blower ? ['suffocate_gas'] : ['suffocate_vent','suffocate_gas'],
+  riskgrp_3: h => ['machine_keepout'].concat(h.flag || h.baton ? ['machine_guide'] : []),
+  riskgrp_4: h => (h.outrigger || h.opad ? ['fallover_outrigger'] : []).concat(h.chock ? ['fallover_chock'] : []).concat(h.outrigger || h.opad || h.chock ? [] : ['fallover_path']),
+  riskgrp_5: () => ['electric_detector'], riskgrp_6: () => ['drop_keepout'], riskgrp_7: () => ['fire_remove'], riskgrp_8: () => ['bury_keepout']
+};
 /* ---------- 평가표 반영 ---------- */
 function markAI(el){
   const lb = el.closest('label'); if (!lb || lb.classList.contains('ai-marked')) return;
@@ -3449,13 +3471,26 @@ function apply(){
       if (g.parents.some(p => (document.querySelector('input[value="' + p + '"]') || {}).checked)) $(g.id).classList.remove('hidden');
     });
   } catch(e){}
+  // 안전대책·공통사항 제안 체크
+  const h = {}; sel.forEach(f => { if (f.key.startsWith('o_')) h[f.key.slice(2)] = 1; if (f.key.startsWith('s_')) h[f.key.slice(2)] = 1; });
+  const ck = v => { const el = document.querySelector('input[type="checkbox"][value="' + v + '"]'); if (!el) return; if (!el.checked){ el.checked = true; n++; } markAI(el); };
+  let kn = 0;
+  try {
+    if (typeof RISK_GROUPS !== 'undefined') RISK_GROUPS.forEach(g => {
+      const on = g.parents.some(p => (document.querySelector('input[value="' + p + '"]') || {}).checked);
+      if (!on || g.kids.some(k => (document.querySelector('input[value="' + k + '"]') || {}).checked) || !KID_PICK[g.id]) return;
+      KID_PICK[g.id](h).forEach(k => { ck(k); kn++; });
+    });
+  } catch(e){}
+  if (h.helmet || h.vest || S.maxPersons) ck('common_ppe');
+  if (['bucket','boom','excavator','crane','dump','loader','machine','forklift','roller','pump','scissor'].some(k => h[k])) ck('common_machine');
   setText('site_special', $('aiTxtSite').value.trim());
   setText('danger_point', $('aiTxtDanger').value.trim());
   setText('danger_todo', $('aiTxtTodo').value.trim());
   closeResult();
   try { if (typeof generateImage === 'function') generateImage(); } catch(e){}
   vib([80, 40, 80]);
-  toast('안나 결과 ' + n + '개 체크 반영 – 안전대책은 직접 확인·체크하세요', 3500);
+  toast('안나 결과 ' + n + '개 체크 반영 (안전대책 제안 ' + kn + '개 포함) – 안나 표시 항목을 확인하고 아니면 해제하세요', 4000);
   const pre = $('sec_prework'); if (pre && vals.size) setTimeout(() => (($('sec_site') || pre).scrollIntoView({behavior:'smooth', block:'start'})), 300);
 }
 
