@@ -2703,7 +2703,7 @@ const EQX = [
   {k:'roller', label:'롤러', maps:['m_roller','risk_machine_hit']},
   {k:'loader', label:'건설장비(로더·소형굴착기)', maps:['risk_machine_hit'], min:0.6},
   {a:'loader'},
-  {k:'machine', label:'건설장비(굴착기 등)', maps:['risk_machine_hit'], min:0.55},
+  {k:'machine', label:'건설장비(포크레인 등)', maps:['risk_machine_hit'], min:0.35},
   {a:'boom'},
   {k:'ladder', label:'사다리', maps:['risk_ladder','risk_fall']},
   {k:'cones', label:'컬러콘(안전시설) 확인', maps:[], info:true, min:0.45},
@@ -2727,7 +2727,7 @@ const EQ_TRAINED = [
   {k:'bucket', label:'고소작업차(바가지차)', maps:['m_truck_lift','risk_fall'], min:0.35},
   {k:'crane', label:'크레인', maps:['m_crane','risk_machine_hit','risk_drop'], min:0.35},
   {k:'dump', label:'덤프트럭', maps:['m_dump','risk_machine_hit'], min:0.35},
-  {k:'machine', label:'건설장비(기타)', maps:['risk_machine_hit'], min:0.4},
+  {k:'machine', label:'건설장비(포크레인 등)', maps:['risk_machine_hit'], min:0.35},
   {k:'closure', label:'접속함체(접속작업)', maps:[], info:true, min:0.3},
   {k:'splicer', label:'융착기(접속작업)', maps:[], info:true, min:0.3},
   {k:'tower', label:'기지국 철탑/안테나', maps:['risk_fall'], min:0.35},
@@ -2870,7 +2870,7 @@ function eqClean0(L){
     if (/^eq_(boom|crane|pump|machine|loader|dump|forklift|roller)$/.test(p.class) && L.some(q => q.class === 'eq_bucket' && q.score >= 0.35 && (ov(p.bbox, q.bbox) > 0.3 || ov(q.bbox, p.bbox) > 0.3))) return false;   // 고소차의 붐·차체를 다른 장비로
     if (/^eq_(machine|loader|dump)$/.test(p.class) && L.some(q => /^(truck|car)$/.test(q.class) && q.score > p.score && ov(p.bbox, q.bbox) > 0.5)) return false;
     if (p.class === 'person' && L.some(q => q.class === 'eq_robot' && ov(p.bbox, q.bbox) > 0.5)) return false;   // 에어로봇을 사람으로
-    if (p.class === 'eq_machine' && (p.score < 0.65 || L.some(q => /^(car|truck|eq_bucket|eq_boom|eq_robot)$/.test(q.class) && ov(p.bbox, q.bbox) > 0.4))) return false;   // 차량+장비 겹침을 건설장비로
+    if (p.class === 'eq_machine' && (p.score < 0.35 || L.some(q => /^(car|truck|eq_bucket|eq_boom|eq_robot)$/.test(q.class) && ov(p.bbox, q.bbox) > 0.4))) return false;   // 차량+장비 겹침을 건설장비로
     if (p.class === 'eq_excavator' || p.class === 'eq_bucket' || p.class === 'eq_boom'){   // 포크레인↔고소차·붐: 겹치면 점수 높은 쪽만
       const o = p.class === 'eq_excavator' ? /^eq_(bucket|boom)$/ : /^eq_excavator$/;
       if (L.some(q => o.test(q.class) && q.score > p.score && (ov(p.bbox, q.bbox) > 0.3 || ov(q.bbox, p.bbox) > 0.3))) return false;
@@ -3539,6 +3539,10 @@ function finish(){
 /* ---------- 사진 올려서 평가 (스캔 대신) ---------- */
 async function startPhotos(files){
   files = Array.from(files || []).slice(0, 10); if (!files.length) return;
+  // 고른 즉시 사진을 읽어 둠 (안드로이드·카톡 브라우저는 시간이 지나면 파일 접근이 끊길 수 있음)
+  const cvs = [];
+  for (const f of files){ try { cvs.push(await recLoadFile(f)); } catch(e){} }
+  if (!cvs.length){ toast('사진을 열지 못했어요. 앨범에서 다시 골라 주세요', 3500); return; }
   S = newState(); S.photoMode = true; S.ended = false; $('aiRescan').textContent = '사진 다시 고르기';
   scanMeta = {cov:0, sec:0};
   $('aiStat').textContent = ''; $('aiResult').classList.add('show');
@@ -3549,9 +3553,8 @@ async function startPhotos(files){
   const dP = loadDetector().catch(() => null); loadExt(); startWorker().then(() => { if (clipErr) dropQueue(); flushQueue(); });
   await dP;
   let t = 0, i = 0;
-  for (const f of files){
-    i++; say('🦺 안나가 사진 보는 중… ' + i + ' / ' + files.length);
-    let c; try { c = await recLoadFile(f); } catch(e){ continue; }
+  for (const c of cvs){
+    i++; say('🦺 안나가 사진 보는 중… ' + i + ' / ' + cvs.length);
     const W = c.width, H = c.height, id = S.gen * 1000 + (S.kfId++);
     const tw = 480, th = Math.round(480 * H / W); thCv.width = tw; thCv.height = th; thCtx.drawImage(c, 0, 0, tw, th);
     const kf = {id, thumb:thCv.toDataURL('image/jpeg', 0.7)}; S.kf.push(kf);
@@ -4163,7 +4166,7 @@ function init(){
   try { shellInit(); } catch(e){ console.warn('shellInit', e); }
   $('aiStartBtn').addEventListener('click', start);
   $('aiPhotoBtn').addEventListener('click', () => $('aiPhotoIn').click());
-  $('aiPhotoIn').addEventListener('change', e => { const f = e.target.files; if (f && f.length) startPhotos(f); e.target.value = ''; });
+  $('aiPhotoIn').addEventListener('change', e => { const inp = e.target, f = Array.from(inp.files || []); if (f.length) startPhotos(f).finally(() => { inp.value = ''; }); else inp.value = ''; });
   $('aiPreloadBtn').addEventListener('click', preload);
   $('aiCancel').addEventListener('click', cancel);
   $('aiDone').addEventListener('click', finish);
