@@ -2860,7 +2860,7 @@ function mhCue(L){
 }
 function eqEdge(L, W, H){
   const r = L.filter(p => {
-    if (!/^eq_(loader|dump|machine|excavator|forklift|roller|boom|bucket)$/.test(p.class)) return true;
+    if (!/^eq_(loader|dump|machine|excavator|forklift|roller|boom|bucket|blower|gasdet)$/.test(p.class)) return true;
     const [x, y, w, h] = p.bbox, m = Math.min(W, H) * 0.02;
     const edge = x < m || y < m || x + w > W - m || y + h > H - m;
     return !(edge && w * h < W * H * 0.08 && p.score < 0.75);
@@ -2893,6 +2893,7 @@ function eqClean0(L){
       if (!L.some(q => q.class === 'person' && q.score >= 0.4 && cx > q.bbox[0] - q.bbox[2] && cx < q.bbox[0] + q.bbox[2] * 2 && cy > q.bbox[1] - q.bbox[3] * 0.4 && cy < q.bbox[1] + q.bbox[3])) return false;
     }
     if (p.class === 'eq_bucket' && p.score < 0.5 && L.some(q => q.class === 'eq_barrier' && (ov(p.bbox, q.bbox) > 0.3 || ov(q.bbox, p.bbox) > 0.3))) return false;   // 방호벽·공사장 펜스를 고소차로
+    if ((p.class === 'eq_blower' || p.class === 'eq_gasdet') && p.score < 0.6 && !L.some(q => q.class === 'eq_manhole' && q.score >= 0.35)) return false;   // 맨홀 없는 송풍기·측정기는 확실할 때만 (빗자루·공구 오인)
     if (p.class === 'eq_tbanner') return bn.includes(p);
     if (/^eq_(boom|crane|pump|machine|loader|dump|forklift|roller)$/.test(p.class) && L.some(q => q.class === 'eq_bucket' && q.score >= 0.35 && (ov(p.bbox, q.bbox) > 0.3 || ov(q.bbox, p.bbox) > 0.3))) return false;   // 고소차의 붐·차체를 다른 장비로
     if (/^eq_(machine|loader|dump)$/.test(p.class) && L.some(q => /^(truck|car)$/.test(q.class) && q.score > p.score && ov(p.bbox, q.bbox) > 0.5)) return false;
@@ -3351,9 +3352,9 @@ function buildFindings(live){
   {
     const has = k => out.some(f => f.key === k), eqn = k => S.eq[k] && S.eq[k].n > 0;
     const th = (S.kf[0] && S.kf[0].thumb) || null;
-    const veh = (S.vehSeen || 0) > 0 || trafficSummary().seen > 0;
+    const veh = S.photoMode ? !!S.nearVeh : ((S.vehSeen || 0) > 0 || trafficSummary().seen > 0);
     if (!has('s_road_edge') && !has('s_road_center') && !has('s_indoor') && !has('s_alley') && !has('s_rooftop') && (veh || eqn('bucket') || eqn('tbanner')) && (eqn('cones') || eqn('bucket')))
-      out.push({key:'s_road_edge', label:'도로 가장자리 차선 (안나 추정)', maps:['site_road_edge'], level:'low', why:'차량·고소차·컬러콘으로 추정 – 도로 위면 체크', thumb:S.vehThumb || th});
+      out.push({key:'s_road_edge', label:'도로 가장자리 차선 (안나 추정)', maps:['site_road_edge'], level:'low', why:'가까운 차량·고소차·컬러콘으로 추정 – 차도 위 작업이면 체크 (인도·공터면 체크하지 마세요)', thumb:(S.photoMode && S.nearThumb) || S.vehThumb || th});
     if (eqn('manhole') && (eqn('blower') || eqn('gasdet') || S.mhOpen || S.mhCone) && !out.some(f => f.maps && f.maps.includes('site_manhole')))
       out.push({key:'s_mh_work', label:'맨홀(수공/인공)내 작업', maps:['site_manhole','risk_suffocate'], level:'high', why:'맨홀 + ' + [eqn('blower') && '송풍기', eqn('gasdet') && '가스측정기', S.mhOpen && '열린 맨홀', S.mhCone && '맨홀 주변 컬러콘'].filter(Boolean).join('·'), thumb:(S.eq.manhole && S.eq.manhole.thumb) || th});
   }
@@ -3438,7 +3439,10 @@ function showFindings(){
   box.querySelectorAll('img.ai-zoom').forEach(im => im.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation(); const f = lastFindings[+im.dataset.z];
     let z = $('aiZoom'); if (!z){ z = document.createElement('div'); z.id = 'aiZoom'; document.body.appendChild(z); z.addEventListener('click', () => z.style.display = 'none'); }
-    z.innerHTML = '<div class="az-b"><b>' + esc(f.label) + '</b><img src="' + f.thumb + '" alt=""><p>' + esc(f.why || '') + (/^o_|traffic/.test(f.key) && !/^o_(power|transformer|wires|telecom|cabinet|trench|wet|ice)$/.test(f.key) ? (f.weak ? '<br>🟨 노란 점선: 안나가 아직 헷갈리는 항목이에요. <strong>참고만</strong> 하고 눈으로 확인하세요' : '<br>🟥 빨간 네모가 안나가 찾은 위치예요') : '<br>이 장면 전체를 보고 판단했어요') + '</p><small>화면을 누르면 닫혀요</small></div>';
+    const msg = (f.key === 's_road_edge' && f.weak) ? '🟨 노란 네모의 차량·컬러콘을 보고 추정했어요. <strong>참고만</strong> 하세요'
+      : (/^o_|traffic/.test(f.key) && !/^o_(power|transformer|wires|telecom|cabinet|trench|wet|ice)$/.test(f.key)) ? (f.weak ? '🟨 노란 점선: 안나가 아직 헷갈리는 항목이에요. <strong>참고만</strong> 하고 눈으로 확인하세요' : '🟥 빨간 네모가 안나가 찾은 위치예요')
+      : '이 장면 전체를 보고 판단했어요';
+    z.innerHTML = '<div class="az-b"><b>' + esc(f.label) + '</b><img src="' + f.thumb + '" alt=""><p>' + esc(f.why || '') + '<br>' + msg + '</p><small>화면을 누르면 닫혀요</small></div>';
     z.style.display = 'flex';
   }));
   fillTexts();
@@ -3603,6 +3607,8 @@ async function startPhotos(files){
       const preds = (await recDetectTiled(c)).filter(b => b.score >= (b.class.startsWith('eq_') ? 0.35 : b.class === 'person' ? 0.7 : 0.4));
       handleDet(preds, t, W);
       const veh = preds.filter(b => VEH[b.class] && b.score >= 0.55);
+      const near = veh.filter(b => b.bbox[2] * b.bbox[3] >= W * H * 0.04 && b.bbox[1] + b.bbox[3] >= H * 0.55);   // 가까이 있는 차량만 (먼 도로 차량 제외)
+      if (near.length){ S.nearVeh = true; if (!S.nearThumb) S.nearThumb = snapThumb(near[0].bbox, true); }
       if (veh.length > S.vehSeen){ S.vehSeen = veh.length; S.vehThumb = snapThumb(veh[0].bbox); }
       thumbSrc = null;
     }
